@@ -80,6 +80,22 @@ class ArbolDecision:
         
         return arbol
     
+
+    def _es_binario(self, atributo):
+        # Verifica si el atributo es binario
+        return len(np.unique(atributo)) == 2
+    
+    def _encontrar_puntos_corte(self, atributo, etiqueta):
+        # Encuentra puntos de corte óptimos
+        puntos_corte = []
+        # Ordena los atributos y etiquetas juntos
+        datos_ordenados = sorted(zip(atributo, etiqueta), key=lambda x: x[0])
+        for i in range(1, len(datos_ordenados)):
+            if datos_ordenados[i-1][1] != datos_ordenados[i][1]:
+                punto_corte = (datos_ordenados[i-1][0] + datos_ordenados[i][0]) / 2
+                puntos_corte.append(punto_corte)
+        return puntos_corte
+
     def predict(self, X):
         # Maneja tanto una lista de ejemplos como un solo ejemplo
         if X.ndim == 1:
