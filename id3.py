@@ -18,13 +18,22 @@ def calcular_entropia(etiqueta):
     # Calcular la entropía
     return -sum(p * log2(p) for p in proporciones)
 
+def calcular_ganancia_discretizado(intervalos, etiqueta):
+    # Se considera que 'atributo_a_calcular' es 'None' para valores discretos
+    return calcular_ganancia(intervalos, etiqueta, atributo_a_calcular=None)
+
 def calcular_ganancia(atributos, etiqueta, atributo_a_calcular):
-    # atributos es el conjunto de características
-    # etiqueta es la lista de etiquetas de clase
-    # atributo_a_calcular es la columna de características sobre la cual calcular la ganancia
     entropia_original = calcular_entropia(etiqueta)
-    valores, conteos = np.unique(atributos[:, atributo_a_calcular], return_counts=True)
-    entropia_atributo = sum((conteos[i] / sum(conteos)) * calcular_entropia(etiqueta[atributos[:, atributo_a_calcular] == v]) for i, v in enumerate(valores))
+    
+    if atributo_a_calcular is None:
+        # En el caso de atributos discretos, usamos los intervalos calculados
+        valores, conteos = np.unique(atributos, return_counts=True)
+        entropia_atributo = sum((conteos[i] / sum(conteos)) * calcular_entropia(etiqueta[atributos == v]) for i, v in enumerate(valores))
+    else:
+        # En el caso de atributos continuos, usamos la función calculada anteriormente
+        valores, conteos = np.unique(atributos[:, atributo_a_calcular], return_counts=True)
+        entropia_atributo = sum((conteos[i] / sum(conteos)) * calcular_entropia(etiqueta[atributos[:, atributo_a_calcular] == v]) for i, v in enumerate(valores))
+
     return entropia_original - entropia_atributo
 
 
@@ -51,7 +60,7 @@ class ArbolDecision:
     def fit(self, atributos, etiqueta):
         self.arbol = self._construir_arbol(atributos, etiqueta, max_range_split)
     
-    def _construir_arbol(self, atributos, etiqueta):
+    def _construir_arbol(self, atributos, etiqueta, max_range_split):
         # Si todas las etiquetas son iguales, devuelve la etiqueta
         if len(np.unique(etiqueta)) == 1:
             return etiqueta[0]
@@ -61,13 +70,32 @@ class ArbolDecision:
             return self._etiqueta_mas_comun(etiqueta)
 
 
-        # Encuentra la característica con la mayor ganancia de información
-        ganancias = [calcular_ganancia(atributos, etiqueta, i) for i in range(atributos.shape[1])]
-        mejor_atributo = np.argmax(ganancias)
-        
+        # Encuentra la característica con la mayor ganancia de información. Si es continua se debe dividir en max_range_split
+        ganancia_max = - float('inf')
+        mejor_atributo = None
+        for atri in range(atributos.shape[1]):
+            if self._es_binario(atributos[:, mejor_atributo]):
+                ganancia = calcular_ganancia(atributos, etiqueta, atri)
+                if ganancia > ganancia_max:
+                    ganancia_max = ganancia
+                    mejor_atributo = atri
+                    es_continuo = False
+            else:
+                puntos_corte = self._encontrar_mejores_puntos_corte(atributos[:, atri], etiqueta, max_range_split)
+                if puntos_corte:
+                    intervalos = np.digitize(atributos[:, atri], puntos_corte)
+                    ganancia = calcular_ganancia_discretizado(intervalos, etiqueta)
+                    
+                    if ganancia > ganancia_max:
+                        ganancia_max = ganancia
+                        mejor_atributo = atri
+                        es_continuo = True
+                        puntos_corte_optimos = puntos_corte
+
+
         # Crea los nodos del árbol
         arbol = {mejor_atributo: {}}
-        if self._es_binario(atributos[:, mejor_atributo]):
+        if (not es_continuo):
             values = np.unique(atributos[:, mejor_atributo])
             for v in values:
                 subset_X = atributos[atributos[:, mejor_atributo] == v]
@@ -78,24 +106,23 @@ class ArbolDecision:
                 
                 subtree = self._construir_arbol(subset_X, subset_y)
                 arbol[mejor_atributo][v] = subtree
+        
         else:
-            # Encuentra los puntos de corte óptimos para el atributo continuo
-            puntos_corte = self._encontrar_puntos_corte(atributos[:, mejor_atributo], etiqueta)
-            for punto in puntos_corte:
-                subset_X_izq = atributos[atributos[:, mejor_atributo] < punto]
-                subset_y_izq = etiqueta[atributos[:, mejor_atributo] < punto]
-                subset_X_der = atributos[atributos[:, mejor_atributo] >= punto]
-                subset_y_der = etiqueta[atributos[:, mejor_atributo] >= punto]
+            intervalos = np.digitize(atributos[:, mejor_atributo], puntos_corte_optimos)
+            for i in range(len(puntos_corte_optimos) + 1):
+                subset_X = atributos[intervalos == i]
+                subset_y = etiqueta[intervalos == i]
+                
+                subset_X = np.delete(subset_X, mejor_atributo, axis=1)
+                subtree = self._construir_arbol(subset_X, subset_y, max_range_split)
+                arbol[mejor_atributo][i] = subtree
 
-                # Recursión para el subárbol izquierdo y derecho
-                arbol[mejor_atributo][f"< {punto}"] = self._construir_arbol(subset_X_izq, subset_y_izq)
-                arbol[mejor_atributo][f">= {punto}"] = self._construir_arbol(subset_X_der, subset_y_der)
         
         return arbol
 
     def _es_binario(self, atributo):
         # Verifica si el atributo es binario
-        return len(np.unique(atributo)) == 2
+        return len(np.unique(atributo)) <= 2
     
     def _encontrar_puntos_corte(self, atributo, etiqueta):
         # Encuentra puntos de corte óptimos
@@ -107,6 +134,25 @@ class ArbolDecision:
                 punto_corte = (datos_ordenados[i-1][0] + datos_ordenados[i][0]) / 2
                 puntos_corte.append(punto_corte)
         return puntos_corte
+
+
+    def _encontrar_mejores_puntos_corte(self, atributo, etiqueta, max_range_split):
+        puntos_corte = self._encontrar_puntos_corte(atributo, etiqueta)
+        mejor_ganancia = -float('inf')
+        mejores_puntos = None
+
+        # Probar combinaciones de puntos de corte
+        for num_puntos in range(1, max_range_split):
+            for combinacion in combinations(puntos_corte, num_puntos):
+                combinacion = sorted(combinacion)
+                intervalos = np.digitize(atributo, combinacion)
+                ganancia = calcular_ganancia_discretizado(intervalos, etiqueta)
+                
+                if ganancia > mejor_ganancia:
+                    mejor_ganancia = ganancia
+                    mejores_puntos = combinacion
+
+    return mejores_puntos    
 
     def predict(self, X):
         # Maneja tanto una lista de ejemplos como un solo ejemplo
