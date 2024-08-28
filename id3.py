@@ -67,19 +67,31 @@ class ArbolDecision:
         
         # Crea los nodos del árbol
         arbol = {mejor_atributo: {}}
-        values = np.unique(atributos[:, mejor_atributo])
-        for v in values:
-            subset_X = atributos[atributos[:, mejor_atributo] == v]
-            subset_y = etiqueta[atributos[:, mejor_atributo] == v]
+        if self._es_binario(atributos[:, mejor_atributo]):
+            values = np.unique(atributos[:, mejor_atributo])
+            for v in values:
+                subset_X = atributos[atributos[:, mejor_atributo] == v]
+                subset_y = etiqueta[atributos[:, mejor_atributo] == v]
+                
+                # Eliminar el mejor atributo del subconjunto antes de la recursión
+                subset_X = np.delete(subset_X, mejor_atributo, axis=1)
+                
+                subtree = self._construir_arbol(subset_X, subset_y)
+                arbol[mejor_atributo][v] = subtree
+        else:
+            # Encuentra los puntos de corte óptimos para el atributo continuo
+            puntos_corte = self._encontrar_puntos_corte(atributos[:, mejor_atributo], etiqueta)
+            for punto in puntos_corte:
+                subset_X_izq = atributos[atributos[:, mejor_atributo] < punto]
+                subset_y_izq = etiqueta[atributos[:, mejor_atributo] < punto]
+                subset_X_der = atributos[atributos[:, mejor_atributo] >= punto]
+                subset_y_der = etiqueta[atributos[:, mejor_atributo] >= punto]
 
-            # Eliminar el mejor atributo del subconjunto antes de la recursión
-            subset_X = np.delete(subset_X, mejor_atributo, axis=1)
-
-            subtree = self._construir_arbol(subset_X, subset_y)
-            arbol[mejor_atributo][v] = subtree
+                # Recursión para el subárbol izquierdo y derecho
+                arbol[mejor_atributo][f"< {punto}"] = self._construir_arbol(subset_X_izq, subset_y_izq)
+                arbol[mejor_atributo][f">= {punto}"] = self._construir_arbol(subset_X_der, subset_y_der)
         
         return arbol
-    
 
     def _es_binario(self, atributo):
         # Verifica si el atributo es binario
