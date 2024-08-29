@@ -1,6 +1,9 @@
 import numpy as np
 from sklearn import preprocessing, model_selection
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
+from itertools import combinations
 
 def calcular_entropia(etiqueta):
     valores, conteos = np.unique(etiqueta, return_counts=True)
@@ -64,7 +67,7 @@ def calcular_ganancia(atributos, etiqueta, atributo_a_calcular, puntos_corte):
 def _es_binario(atributo):
     return len(np.unique(atributo)) <= 2
 
-def _encontrar_mejores_puntos_corte(atributo, etiqueta, max_range_split):
+def _encontrar_mejores_puntos_corte(atributos, atributo, indice, etiqueta, max_range_split):
     puntos_corte = []
     datos_ordenados = sorted(zip(atributo, etiqueta), key=lambda x: x[0])
     
@@ -80,9 +83,26 @@ def _encontrar_mejores_puntos_corte(atributo, etiqueta, max_range_split):
                 continue
     
     if len(puntos_corte) > max_range_split:
-        puntos_corte = puntos_corte[:max_range_split]
+        mejor_ganancia = -float('inf')
+        # Probar combinaciones de puntos de corte
+        for num_puntos in range(1, max_range_split):
+            for combinacion in combinations(puntos_corte, num_puntos):
+                combinacion = sorted(combinacion)
+                ganancia = calcular_ganancia(atributos, etiqueta, indice, combinacion)
+                
+                if ganancia > mejor_ganancia:
+                    mejor_ganancia = ganancia
+                    puntos_corte = combinacion   
     
     return puntos_corte
+   
+
+
+
+
+
+
+
 
 class ArbolDecision:
     def __init__(self):
@@ -107,7 +127,7 @@ class ArbolDecision:
                 ganancia = calcular_ganancia(atributos, etiqueta, i, None)
                 puntos_corte = None
             else:
-                puntos_corte = _encontrar_mejores_puntos_corte(atributos[:, i], etiqueta, max_range_split)
+                puntos_corte = _encontrar_mejores_puntos_corte(atributos, atributos[:, i], i, etiqueta, max_range_split)
                 ganancia = calcular_ganancia(atributos, etiqueta, i, puntos_corte)
             
             if ganancia > mejor_ganancia:
@@ -183,30 +203,141 @@ class ArbolDecision:
                 
         return nodo
 
-# Leer el archivo y dividir en conjunto de entrenamiento y prueba
-DATASET_FILE = 'lab1_dataset.csv'
-dataset = pd.read_csv(DATASET_FILE, sep=",", header=None).add_prefix("c")
-dataset = dataset.drop(dataset.columns[0], axis=1)
 
-# Convertir todos los atributos a valores numéricos
-le = preprocessing.LabelEncoder()
-for column in dataset.columns:
-    dataset[column] = le.fit_transform(dataset[column])
+if __name__ == '__main__':
 
-train, test = model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
+    # Leer el archivo
+    DATASET_FILE = 'lab1_dataset.csv'
+    dataset = pd.read_csv(DATASET_FILE, sep=",").add_prefix("c")
+    
+    #Se elimina del dataset la primera columna ya que no es un atributo. Corresponde al ID del paciente
+    dataset = dataset.drop(dataset.columns[0], axis=1)
 
-# Entrenamiento del modelo
-atributos = train.iloc[:, 1:].values
-etiqueta = train.iloc[:, 0].values
+    #Dividimos el dataset en entrenamiento y prueba
+    train, test = model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
 
-arbol = ArbolDecision()
-arbol.fit(atributos, etiqueta, 3)
+    # Entrenamiento del modelo. La primer columna es el cid (funcion objetivo). Se separa en etiqueta, el resto son atributos
+    atributos = train.iloc[:, 1:].values
+    etiqueta = train.iloc[:, 0].values
 
-# Validar el árbol con el conjunto de prueba
-atributos_test = test.iloc[:, 1:].values
-etiqueta_test = test.iloc[:, 0].values
+    # Conjunto de prueba
+    atributos_test = test.iloc[:, 1:].values
+    etiqueta_test = test.iloc[:, 0].values
 
-# Hacer predicciones y calcular la precisión
-predicciones = [arbol.predict(x) for x in atributos_test]
-precision = np.sum(np.array(predicciones) == etiqueta_test) / len(etiqueta_test)
-print(f"Precisión: {precision}")
+    # Entrenar el árbol de decisión con max_iter_split = 2
+    print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 2")
+    arbol_m2 = ArbolDecision()
+    arbol_m2.fit(atributos, etiqueta, 2)
+
+    # Entrenar el árbol de decisión con max_iter_split = 3
+    print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 3")
+    arbol_m3 = ArbolDecision()
+    arbol_m3.fit(atributos, etiqueta, 3)
+    
+
+    # Entrenar con DecisionTreeClassifier con criterion = 'gini'
+    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'gini'")
+    dt_classifier_gini = DecisionTreeClassifier(random_state=42)
+    dt_classifier_gini.fit(atributos, etiqueta)
+
+    # Entrenar con DecisionTreeClassifier con criterion = 'entropy'
+    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'entropy'")
+    dt_classifier_entropy = DecisionTreeClassifier(random_state=42, criterion='entropy')
+    dt_classifier_entropy.fit(atributos, etiqueta)
+
+    # Entrenar con DecisionTreeClassifier con criterion = 'log_loss'
+    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'log_loss'")
+    dt_classifier_log_loss = DecisionTreeClassifier(random_state=42, criterion='log_loss')
+    dt_classifier_log_loss.fit(atributos, etiqueta)
+
+    # Entrenar y evaluar RandomForestClassifier con criterion = 'gini'
+    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'gini'")
+    rf_classifier_gini = RandomForestClassifier(random_state=42, criterion='gini')
+    rf_classifier_gini.fit(atributos, etiqueta)
+
+    # Entrenar y evaluar RandomForestClassifier con criterion = 'entropy'
+    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'entropy'")
+    rf_classifier_entropy = RandomForestClassifier(random_state=42, criterion='entropy')
+    rf_classifier_entropy.fit(atributos, etiqueta)
+
+    # Entrenar y evaluar RandomForestClassifier con criterion = 'log_loss'
+    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'log_loss'")
+    rf_classifier_log_loss = RandomForestClassifier(random_state=42, criterion='log_loss')
+    rf_classifier_log_loss.fit(atributos, etiqueta)
+
+    # Imprimir una linea en blanco
+    print('\n')
+    # Hacer predicciones y calcular la precisión
+    print("Evaluación de los modelos:")
+    print('\n')
+    
+    predicciones_m2_train = [arbol_m2.predict(x) for x in atributos]
+    predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
+    precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta) / len(etiqueta)
+    precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test) / len(etiqueta_test)
+    print("ALgoritmo ID3 con max_iter_split = 2:")
+    print(f"Precisión con datos de entrenamiento: {precision_m2_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_m2_test * 100}%")
+    print('\n')
+
+    predicciones_m3_train = [arbol_m3.predict(x) for x in atributos]
+    predicciones_m3_test = [arbol_m3.predict(x) for x in atributos_test]
+    precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta) / len(etiqueta)
+    precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test) / len(etiqueta_test)
+    print("ALgoritmo ID3 con max_iter_split = 3:")
+    print(f"Precisión con datos de entrenamiento: {precision_m3_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_m3_test * 100}%")
+    print('\n')
+
+    predicciones_dt_gini_train = dt_classifier_gini.predict(atributos)
+    predicciones_dt_gini_test = dt_classifier_gini.predict(atributos_test)
+    precision_dt_gini_train = np.sum(predicciones_dt_gini_train == etiqueta) / len(etiqueta) 
+    precision_dt_gini_test = np.sum(predicciones_dt_gini_test == etiqueta_test) / len(etiqueta_test)
+    print("DecisionTreeClassifier con cirterion = 'gini':")
+    print(f"Precisión con datos de entrenamiento: {precision_dt_gini_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_dt_gini_test * 100}%")
+    print('\n')
+
+    predicciones_dt_entropy_train = dt_classifier_entropy.predict(atributos)
+    predicciones_dt_entropy_test = dt_classifier_entropy.predict(atributos_test)
+    precision_dt_entropy_train = np.sum(predicciones_dt_entropy_train == etiqueta) / len(etiqueta) 
+    precision_dt_entropy_test = np.sum(predicciones_dt_entropy_test == etiqueta_test) / len(etiqueta_test)
+    print("DecisionTreeClassifier con criterion = 'entropy':")
+    print(f"Precisión con datos de entrenamiento: {precision_dt_entropy_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_dt_entropy_test * 100}%")
+    print('\n')
+    
+    predicciones_dt_log_loss_train = dt_classifier_log_loss.predict(atributos)
+    predicciones_dt_log_loss_test = dt_classifier_log_loss.predict(atributos_test)
+    precision_dt_log_loss_train = np.sum(predicciones_dt_log_loss_train == etiqueta) / len(etiqueta) 
+    precision_dt_log_loss_test = np.sum(predicciones_dt_log_loss_test == etiqueta_test) / len(etiqueta_test)
+    print("DecisionTreeClassifier con criterion = 'log_loss':")
+    print(f"Precisión con datos de entrenamiento: {precision_dt_log_loss_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_dt_log_loss_test * 100}%")
+    print('\n')
+
+    predicciones_rf_gini_train = rf_classifier_gini.predict(atributos)
+    predicciones_rf_gini_test = rf_classifier_gini.predict(atributos_test)
+    precision_rf_gini_train = np.sum(predicciones_rf_gini_train == etiqueta) / len(etiqueta)
+    precision_rf_gini_test = np.sum(predicciones_rf_gini_test == etiqueta_test) / len(etiqueta_test)
+    print("RandomForestClassifier con criterion = 'gini':")
+    print(f"Precisión con datos de entrenamiento: {precision_rf_gini_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_rf_gini_test * 100}%")
+    print('\n')
+
+    predicciones_rf_entropy_train = rf_classifier_entropy.predict(atributos)
+    predicciones_rf_entropy_test = rf_classifier_entropy.predict(atributos_test)
+    precision_rf_entropy_train = np.sum(predicciones_rf_entropy_train == etiqueta) / len(etiqueta)
+    precision_rf_entropy_test = np.sum(predicciones_rf_entropy_test == etiqueta_test) / len(etiqueta_test)
+    print("RandomForestClassifier con criterion = 'entropy':")
+    print(f"Precisión con datos de entrenamiento: {precision_rf_entropy_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_rf_entropy_test * 100}%")
+    print('\n')
+
+    predicciones_rf_log_loss_train = rf_classifier_log_loss.predict(atributos)
+    predicciones_rf_log_loss_test = rf_classifier_log_loss.predict(atributos_test)
+    precision_rf_log_loss_train = np.sum(predicciones_rf_log_loss_train == etiqueta) / len(etiqueta)
+    precision_rf_log_loss_test = np.sum(predicciones_rf_log_loss_test == etiqueta_test) / len(etiqueta_test)
+    print("RandomForestClassifier con criterion = 'log_loss':")
+    print(f"Precisión con datos de entrenamiento: {precision_rf_log_loss_train * 100}%")
+    print(f"Precisión con datos de prueba: {precision_rf_log_loss_test * 100}%")
