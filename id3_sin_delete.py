@@ -38,12 +38,6 @@ def calcular_ganancia(atributos, etiqueta, atributo_a_calcular):
     return entropia_original - entropia_atributo
 
 
-def _etiqueta_mas_comun(self, etiqueta):
-        # Encuentra la etiqueta que aparece más frecuentemente
-        (valores, conteos) = np.unique(etiqueta, return_counts=True)
-        indice = np.argmax(conteos)
-        return valores[indice]
-
 
 def train_test_split(dataset, test_size=0.2, random_state=None):
     np.random.seed(random_state)
@@ -57,8 +51,10 @@ def train_test_split(dataset, test_size=0.2, random_state=None):
 class ArbolDecision:
     def __init__(self):
         self.arbol = None
+        self.mask = None
     
     def fit(self, atributos, etiqueta, max_range_split):
+        self.mask = mask = np.ones(atributos.shape[1], dtype=bool)
         self.arbol = self._construir_arbol(atributos, etiqueta, max_range_split)
     
     def _construir_arbol(self, atributos, etiqueta, max_range_split):
@@ -67,31 +63,31 @@ class ArbolDecision:
             return etiqueta[0]
         
         # Si no quedan más atributos, devolver la etiqueta más común
-        if atributos.shape[1] == 0:
+        if self.mask.sum() == 0:
             return self._etiqueta_mas_comun(etiqueta)
 
         es_continuo = False
         # Encuentra la característica con la mayor ganancia de información. Si es continua se debe dividir en max_range_split
         ganancia_max = - float('inf')
         mejor_atributo = None
-        print(atributos.shape[1])
         for atri in range(atributos.shape[1]):
-            if self._es_binario(atributos[:, atri]):
-                ganancia = calcular_ganancia(atributos, etiqueta, atri)
-                if ganancia > ganancia_max:
-                    ganancia_max = ganancia
-                    mejor_atributo = atri
-                    es_continuo = False
-            else:
-                puntos_corte = self._encontrar_mejores_puntos_corte(atributos[:, atri], etiqueta, max_range_split)
-                intervalos = np.digitize(atributos[:, atri], puntos_corte)
-                ganancia = calcular_ganancia_discretizado(intervalos, etiqueta)
-                
-                if ganancia > ganancia_max:
-                    ganancia_max = ganancia
-                    mejor_atributo = atri
-                    es_continuo = True
-                    puntos_corte_optimos = puntos_corte
+            if self.mask[atri]:   
+                if self._es_binario(atributos[:, atri]):
+                    ganancia = calcular_ganancia(atributos, etiqueta, atri)
+                    if ganancia > ganancia_max:
+                        ganancia_max = ganancia
+                        mejor_atributo = atri
+                        es_continuo = False
+                else:
+                    puntos_corte = self._encontrar_mejores_puntos_corte(atributos[:, atri], etiqueta, max_range_split)
+                    intervalos = np.digitize(atributos[:, atri], puntos_corte)
+                    ganancia = calcular_ganancia_discretizado(intervalos, etiqueta)
+                    
+                    if ganancia > ganancia_max:
+                        ganancia_max = ganancia
+                        mejor_atributo = atri
+                        es_continuo = True
+                        puntos_corte_optimos = puntos_corte
 
         # Crea los nodos del árbol
         arbol = {mejor_atributo: {}}
@@ -101,21 +97,32 @@ class ArbolDecision:
                 subset_X = atributos[atributos[:, mejor_atributo] == v]
                 subset_y = etiqueta[atributos[:, mejor_atributo] == v]
                 
-                # Eliminar el mejor atributo del subconjunto antes de la recursión
-                subset_X = np.delete(subset_X, mejor_atributo, axis=1)
+                # Quitamos el mejor atributo de la mascara antes de la recursión
+                self.mask[mejor_atributo] = False
                 
                 subtree = self._construir_arbol(subset_X, subset_y, max_range_split)
                 arbol[mejor_atributo][v] = subtree
         
         else:
-            intervalos = np.digitize(atributos[:, mejor_atributo], puntos_corte_optimos)
+            # Para atributos continuos, almacenamos los puntos de corte y los intervalos
+            puntos_corte_optimos = sorted(puntos_corte_optimos)
             for i in range(len(puntos_corte_optimos) + 1):
-                subset_X = atributos[intervalos == i]
-                subset_y = etiqueta[intervalos == i]
-                subset_X = np.delete(subset_X, mejor_atributo, axis=1)
+                if i == 0:
+                    subset_X = atributos[atributos[:, mejor_atributo] <= puntos_corte_optimos[i]]
+                    subset_y = etiqueta[atributos[:, mejor_atributo] <= puntos_corte_optimos[i]]
+                    intervalo = (-float('inf'), puntos_corte_optimos[i])
+                elif i == len(puntos_corte_optimos):
+                    subset_X = atributos[atributos[:, mejor_atributo] > puntos_corte_optimos[i - 1]]
+                    subset_y = etiqueta[atributos[:, mejor_atributo] > puntos_corte_optimos[i - 1]]
+                    intervalo = (puntos_corte_optimos[i - 1], float('inf'))
+                else:
+                    subset_X = atributos[(atributos[:, mejor_atributo] > puntos_corte_optimos[i - 1]) & (atributos[:, mejor_atributo] <= puntos_corte_optimos[i])]
+                    subset_y = etiqueta[(atributos[:, mejor_atributo] > puntos_corte_optimos[i - 1]) & (atributos[:, mejor_atributo] <= puntos_corte_optimos[i])]
+                    intervalo = (puntos_corte_optimos[i - 1], puntos_corte_optimos[i])
+                
+                self.mask[mejor_atributo] = False
                 subtree = self._construir_arbol(subset_X, subset_y, max_range_split)
-                arbol[mejor_atributo][i] = subtree
-            
+                arbol[mejor_atributo][intervalo] = subtree
         
         return arbol
 
@@ -152,26 +159,54 @@ class ArbolDecision:
 
         return mejores_puntos    
 
+    def _etiqueta_mas_comun(self, etiqueta):
+        # Encuentra la etiqueta que aparece más frecuentemente
+        (valores, conteos) = np.unique(etiqueta, return_counts=True)
+        indice = np.argmax(conteos)
+        return valores[indice]
+
     def predict(self, X):
-        # Maneja tanto una lista de ejemplos como un solo ejemplo
+        if self.arbol is None:
+            raise ValueError("El árbol no ha sido entrenado. Llama a `fit` primero.")
+        
+        # Si X es un solo dato (un vector), tenemos que convertirlo en una matriz de una sola fila
         if X.ndim == 1:
-            return self._predecir_ejemplo(X, self.arbol)
-        else:
-            return [self._predecir_ejemplo(ejemplo, self.arbol) for ejemplo in X]
+            X = X.reshape(1, -1)
+        
+        predicciones = np.array([self._predecir_un_dato(x) for x in X])
+        return predicciones
 
-    def _predecir_ejemplo(self, ejemplo, arbol):
-        if not isinstance(arbol, dict):
-            return arbol
+    def _predecir_un_dato(self, x):
+        arbol = self.arbol
+        while isinstance(arbol, dict):
+            atributo = list(arbol.keys())[0]
+            valor = x[atributo]
+            
+            if atributo in arbol:
+                if isinstance(arbol[atributo], dict):
+                    if isinstance(list(arbol[atributo].keys())[0], tuple):
+                        intervalo = self._encontrar_intervalo(valor, atributo)
+                        arbol = arbol[atributo].get(intervalo, None)
+                    else:
+                        arbol = arbol[atributo].get(valor, None)
+                        if arbol is None:
+                            return None
+                else:
+                    arbol = arbol[atributo].get(valor, None)
+                    if arbol is None:
+                        return None
+            else:
+                return arbol
+            
+        return arbol
 
-        atributo = list(arbol.keys())[0]
-        valor = ejemplo[atributo]
-
-        if valor in arbol[atributo]:
-            subarbol = arbol[atributo][valor]
-            return self._predecir_ejemplo(ejemplo, subarbol)
-        else:
-            return None
-
+    def _encontrar_intervalo(self, valor, atributo):
+        # Determina el intervalo al que pertenece el valor
+        intervalos = sorted(self.arbol[atributo].keys())
+        for intervalo in intervalos:
+            if intervalo[0] < valor <= intervalo[1]:
+                return intervalo
+        return intervalos[-1]  # Valor fuera del último intervalo
 
 
 
