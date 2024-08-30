@@ -4,6 +4,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 from itertools import combinations
+from sklearn.model_selection import KFold
+
 
 def calcular_entropia(etiqueta):
     valores, conteos = np.unique(etiqueta, return_counts=True)
@@ -224,7 +226,10 @@ if __name__ == '__main__':
     atributos_test = test.iloc[:, 1:].values
     etiqueta_test = test.iloc[:, 0].values
 
-    # Entrenar el árbol de decisión con max_iter_split = 2
+
+  
+
+
     print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 2")
     arbol_m2 = ArbolDecision()
     arbol_m2.fit(atributos, etiqueta, 2)
@@ -233,6 +238,9 @@ if __name__ == '__main__':
     print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 3")
     arbol_m3 = ArbolDecision()
     arbol_m3.fit(atributos, etiqueta, 3)
+
+    
+
     
 
     # Entrenar con DecisionTreeClassifier con criterion = 'gini'
@@ -270,6 +278,11 @@ if __name__ == '__main__':
     # Hacer predicciones y calcular la precisión
     print("Evaluación de los modelos:")
     print('\n')
+    
+    """ print("\n------ Resultados de la Validación Cruzada ------")
+    print(f"Precisión promedio con max_iter_split = 2: {precision_promedio_m2 * 100:.2f}%")
+    print(f"Precisión promedio con max_iter_split = 3: {precision_promedio_m3 * 100:.2f}%") """
+    
     
     predicciones_m2_train = [arbol_m2.predict(x) for x in atributos]
     predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
@@ -341,3 +354,62 @@ if __name__ == '__main__':
     print("RandomForestClassifier con criterion = 'log_loss':")
     print(f"Precisión con datos de entrenamiento: {precision_rf_log_loss_train * 100}%")
     print(f"Precisión con datos de prueba: {precision_rf_log_loss_test * 100}%")
+
+  # Configurar la validación cruzada con 5 pliegues
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    # Inicializar listas para almacenar la precisión de cada iteración
+    precisiones_m2_train = []
+    precisiones_m2_test = []
+    precisiones_m3_train = []
+    precisiones_m3_test = []
+
+# Validación cruzada manual con tu algoritmo implementado
+for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
+    atributos_train, atributos_test = atributos[train_index], atributos[test_index]
+    etiqueta_train, etiqueta_test = etiqueta[train_index], etiqueta[test_index]
+
+    print(f"\n------ Pliegue {fold} ------")
+
+    # Entrenar el modelo con max_iter_split = 2
+    arbol_m2 = ArbolDecision()
+    arbol_m2.fit(atributos_train, etiqueta_train, 2)
+    
+    # Predecir y calcular precisión en datos de entrenamiento
+    predicciones_m2_train = [arbol_m2.predict(x) for x in atributos_train]
+    precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta_train) / len(etiqueta_train)
+    precisiones_m2_train.append(precision_m2_train)
+    print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {precision_m2_train * 100:.2f}%")
+    
+    # Predecir y calcular precisión en datos de prueba
+    predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
+    precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test) / len(etiqueta_test)
+    precisiones_m2_test.append(precision_m2_test)
+    print(f"Precisión en datos de prueba con max_iter_split = 2: {precision_m2_test * 100:.2f}%")
+
+    # Entrenar el modelo con max_iter_split = 3
+    arbol_m3 = ArbolDecision()
+    arbol_m3.fit(atributos_train, etiqueta_train, 3)
+    
+    # Predecir y calcular precisión en datos de entrenamiento
+    predicciones_m3_train = [arbol_m3.predict(x) for x in atributos_train]
+    precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta_train) / len(etiqueta_train)
+    precisiones_m3_train.append(precision_m3_train)
+    print(f"Precisión en datos de entrenamiento con max_iter_split = 3: {precision_m3_train * 100:.2f}%")
+    
+    # Predecir y calcular precisión en datos de prueba
+    predicciones_m3_test = [arbol_m3.predict(x) for x in atributos_test]
+    precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test) / len(etiqueta_test)
+    precisiones_m3_test.append(precision_m3_test)
+    print(f"Precisión en datos de prueba con max_iter_split = 3: {precision_m3_test * 100:.2f}%")
+
+# Calcular la precisión promedio de los 5 pliegues para cada modelo
+precision_promedio_m2_train = np.mean(precisiones_m2_train)
+precision_promedio_m2_test = np.mean(precisiones_m2_test)
+precision_promedio_m3_train = np.mean(precisiones_m3_train)
+precision_promedio_m3_test = np.mean(precisiones_m3_test)
+
+print("\n------ Resultados de la Validación Cruzada ------")
+print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
+print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
+print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 3: {precision_promedio_m3_train * 100:.2f}%")
+print(f"Precisión promedio en datos de prueba con max_iter_split = 3: {precision_promedio_m3_test * 100:.2f}%")
