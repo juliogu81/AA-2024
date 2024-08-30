@@ -2,6 +2,9 @@ import numpy as np
 from sklearn import preprocessing, model_selection
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 import pandas as pd
 from itertools import combinations
 from sklearn.model_selection import KFold
@@ -66,8 +69,8 @@ def calcular_ganancia(atributos, etiqueta, atributo_a_calcular, puntos_corte):
     ganancia = entropia_inicial - entropia_condicional
     return ganancia
 
-def _es_binario(atributo):
-    return len(np.unique(atributo)) <= 2
+def _es_categorico(atributo, categoricos):
+    return atributo in categoricos
 
 def _encontrar_mejores_puntos_corte(atributos, atributo, indice, etiqueta, max_range_split):
     puntos_corte = []
@@ -110,10 +113,10 @@ class ArbolDecision:
     def __init__(self):
         self.arbol = None
     
-    def fit(self, atributos, etiqueta, max_range_split):
-        self.arbol = self._construir_arbol(atributos, etiqueta, max_range_split)
+    def fit(self, atributos, etiqueta, max_range_split, categoricos):
+        self.arbol = self._construir_arbol(atributos, etiqueta, max_range_split, categoricos)
     
-    def _construir_arbol(self, atributos, etiqueta, max_range_split):
+    def _construir_arbol(self, atributos, etiqueta, max_range_split, categoricos):
         if len(np.unique(etiqueta)) == 1:
             return np.unique(etiqueta)[0]
         
@@ -125,7 +128,7 @@ class ArbolDecision:
         mejor_puntos_corte = None
         
         for i in range(atributos.shape[1]):
-            if _es_binario(atributos[:, i]):
+            if _es_categorico(i, categoricos):
                 ganancia = calcular_ganancia(atributos, etiqueta, i, None)
                 puntos_corte = None
             else:
@@ -149,16 +152,16 @@ class ArbolDecision:
             for valor in valores:
                 indices = atributos[:, mejor_atributo] == valor
                 if len(indices) > 0:
-                    arbol[valor] = self._construir_arbol(atributos[indices], etiqueta[indices], max_range_split)
+                    arbol[valor] = self._construir_arbol(atributos[indices], etiqueta[indices], max_range_split, categoricos)
         else:
             if len(mejor_puntos_corte) == 1:
                 punto_corte = mejor_puntos_corte[0]
                 menores = atributos[:, mejor_atributo].astype(float) <= punto_corte
                 mayores = atributos[:, mejor_atributo].astype(float) > punto_corte
                 if np.any(menores):
-                    arbol[f'<= {punto_corte}'] = self._construir_arbol(atributos[menores], etiqueta[menores], max_range_split)
+                    arbol[f'<= {punto_corte}'] = self._construir_arbol(atributos[menores], etiqueta[menores], max_range_split, categoricos)
                 if np.any(mayores):
-                    arbol[f'> {punto_corte}'] = self._construir_arbol(atributos[mayores], etiqueta[mayores], max_range_split)
+                    arbol[f'> {punto_corte}'] = self._construir_arbol(atributos[mayores], etiqueta[mayores], max_range_split, categoricos)
             elif len(mejor_puntos_corte) == 2:
                 punto_corte_1 = mejor_puntos_corte[0]
                 punto_corte_2 = mejor_puntos_corte[1]
@@ -166,11 +169,11 @@ class ArbolDecision:
                 rango_2 = (atributos[:, mejor_atributo].astype(float) > punto_corte_1) & (atributos[:, mejor_atributo].astype(float) <= punto_corte_2)
                 rango_3 = atributos[:, mejor_atributo].astype(float) > punto_corte_2
                 if np.any(rango_1):
-                    arbol[f'<= {punto_corte_1}'] = self._construir_arbol(atributos[rango_1], etiqueta[rango_1], max_range_split)
+                    arbol[f'<= {punto_corte_1}'] = self._construir_arbol(atributos[rango_1], etiqueta[rango_1], max_range_split, categoricos)
                 if np.any(rango_2):
-                    arbol[f'> {punto_corte_1} y <= {punto_corte_2}'] = self._construir_arbol(atributos[rango_2], etiqueta[rango_2], max_range_split)
+                    arbol[f'> {punto_corte_1} y <= {punto_corte_2}'] = self._construir_arbol(atributos[rango_2], etiqueta[rango_2], max_range_split, categoricos)
                 if np.any(rango_3):
-                    arbol[f'> {punto_corte_2}'] = self._construir_arbol(atributos[rango_3], etiqueta[rango_3], max_range_split)
+                    arbol[f'> {punto_corte_2}'] = self._construir_arbol(atributos[rango_3], etiqueta[rango_3], max_range_split, categoricos)
         
         return arbol
     
@@ -211,9 +214,19 @@ if __name__ == '__main__':
     # Leer el archivo
     DATASET_FILE = 'lab1_dataset.csv'
     dataset = pd.read_csv(DATASET_FILE, sep=",").add_prefix("c")
-    
+
     #Se elimina del dataset la primera columna ya que no es un atributo. Corresponde al ID del paciente
     dataset = dataset.drop(dataset.columns[0], axis=1)
+
+    categorical_columns = [1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
+
+    # Crear el preprocesador
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(), categorical_columns)
+        ],
+        remainder='passthrough'  # Las columnas no categóricas se dejan tal cual
+    )
 
     #Dividimos el dataset en entrenamiento y prueba
     train, test = model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
@@ -225,19 +238,17 @@ if __name__ == '__main__':
     # Conjunto de prueba
     atributos_test = test.iloc[:, 1:].values
     etiqueta_test = test.iloc[:, 0].values
-
-
   
 
 
     print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 2")
     arbol_m2 = ArbolDecision()
-    arbol_m2.fit(atributos, etiqueta, 2)
+    arbol_m2.fit(atributos, etiqueta, 2, categorical_columns)
 
     # Entrenar el árbol de decisión con max_iter_split = 3
     print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 3")
     arbol_m3 = ArbolDecision()
-    arbol_m3.fit(atributos, etiqueta, 3)
+    arbol_m3.fit(atributos, etiqueta, 3, categorical_columns)
 
     
 
@@ -245,32 +256,50 @@ if __name__ == '__main__':
 
     # Entrenar con DecisionTreeClassifier con criterion = 'gini'
     print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'gini'")
-    dt_classifier_gini = DecisionTreeClassifier(random_state=42)
+    dt_classifier_gini = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', DecisionTreeClassifier(random_state=42))
+    ])
     dt_classifier_gini.fit(atributos, etiqueta)
 
     # Entrenar con DecisionTreeClassifier con criterion = 'entropy'
     print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'entropy'")
-    dt_classifier_entropy = DecisionTreeClassifier(random_state=42, criterion='entropy')
+    dt_classifier_entropy = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', DecisionTreeClassifier(random_state=42, criterion='entropy'))
+    ])
     dt_classifier_entropy.fit(atributos, etiqueta)
 
     # Entrenar con DecisionTreeClassifier con criterion = 'log_loss'
     print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'log_loss'")
-    dt_classifier_log_loss = DecisionTreeClassifier(random_state=42, criterion='log_loss')
+    dt_classifier_log_loss = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', DecisionTreeClassifier(random_state=42, criterion='log_loss'))
+    ])
     dt_classifier_log_loss.fit(atributos, etiqueta)
 
     # Entrenar y evaluar RandomForestClassifier con criterion = 'gini'
     print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'gini'")
-    rf_classifier_gini = RandomForestClassifier(random_state=42, criterion='gini')
+    rf_classifier_gini = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(random_state=42))
+    ])
     rf_classifier_gini.fit(atributos, etiqueta)
 
     # Entrenar y evaluar RandomForestClassifier con criterion = 'entropy'
     print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'entropy'")
-    rf_classifier_entropy = RandomForestClassifier(random_state=42, criterion='entropy')
+    rf_classifier_entropy = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(random_state=42, criterion= 'entropy'))
+    ])
     rf_classifier_entropy.fit(atributos, etiqueta)
 
     # Entrenar y evaluar RandomForestClassifier con criterion = 'log_loss'
     print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'log_loss'")
-    rf_classifier_log_loss = RandomForestClassifier(random_state=42, criterion='log_loss')
+    rf_classifier_log_loss = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(random_state=42, criterion= 'log_loss'))
+    ])
     rf_classifier_log_loss.fit(atributos, etiqueta)
 
     # Imprimir una linea en blanco
@@ -372,7 +401,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
 
     # Entrenar el modelo con max_iter_split = 2
     arbol_m2 = ArbolDecision()
-    arbol_m2.fit(atributos_train, etiqueta_train, 2)
+    arbol_m2.fit(atributos_train, etiqueta_train, 2, categorical_columns)
     
     # Predecir y calcular precisión en datos de entrenamiento
     predicciones_m2_train = [arbol_m2.predict(x) for x in atributos_train]
@@ -388,7 +417,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
 
     # Entrenar el modelo con max_iter_split = 3
     arbol_m3 = ArbolDecision()
-    arbol_m3.fit(atributos_train, etiqueta_train, 3)
+    arbol_m3.fit(atributos_train, etiqueta_train, 3, categorical_columns)
     
     # Predecir y calcular precisión en datos de entrenamiento
     predicciones_m3_train = [arbol_m3.predict(x) for x in atributos_train]
