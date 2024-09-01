@@ -307,12 +307,25 @@ if __name__ == '__main__':
 
     # Calcular la precisión promedio de los 5 pliegues para cada modelo
     precision_promedio_m2_train = np.mean(precisiones_m2_train)
+    precision_desviacion_m2_train = np.std(precisiones_m2_train)
+
     precision_promedio_m2_test = np.mean(precisiones_m2_test)
+    precision_desviacion_m2_test = np.std(precisiones_m2_test)
+    
     precision_promedio_m3_train = np.mean(precisiones_m3_train)
+    precision_desviacion_m3_train = np.std(precisiones_m3_train)
+    
     precision_promedio_m3_test = np.mean(precisiones_m3_test)
+    precision_desviacion_m3_test = np.std(precisiones_m3_test)
+
 
     print("\n------ Resultados de la Validación Cruzada ------")
     print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
+    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 2: {precision_desviacion_m2_train * 100:.2f}%")
     print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
+    print(f"Desviación estándar en datos de prueba con max_range_split = 2: {precision_desviacion_m2_test * 100:.2f}%")
+
     print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 3: {precision_promedio_m3_train * 100:.2f}%")
+    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 3: {precision_desviacion_m3_train * 100:.2f}%")
     print(f"Precisión promedio en datos de prueba con max_iter_split = 3: {precision_promedio_m3_test * 100:.2f}%")
+    print(f"Desviación estándar en datos de prueba con max_range_split = 3: {precision_desviacion_m3_test * 100:.2f}%")
