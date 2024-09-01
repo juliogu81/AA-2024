@@ -224,49 +224,53 @@ if __name__ == '__main__':
             puntos_corte_3 = _encontrar_mejores_puntos_corte(atributos_max_range_split_3, atributos.iloc[:, col], col, etiqueta, 3)
             atributos_max_range_split_3.iloc[:, col] = pd.cut(atributos.iloc[:, col], bins=[-np.inf] + puntos_corte_3 + [np.inf], labels=range(len(puntos_corte_3)+1)).astype(int)
 
-    # Unir atributos y etiquetas de nuevo para dividir el dataset
+    # Aquí se definen correctamente las variables dataset_max_2 y dataset_max_3
     dataset_max_2 = pd.concat([etiqueta, atributos_max_range_split_2], axis=1)
     dataset_max_3 = pd.concat([etiqueta, atributos_max_range_split_3], axis=1)
 
-    # Dividir el dataset en entrenamiento y prueba
-    train_2, test_2 = model_selection.train_test_split(dataset_max_2, test_size=0.2, random_state=42)
-    train_3, test_3 = model_selection.train_test_split(dataset_max_3, test_size=0.2, random_state=42)
+    # Preparar validación cruzada de 5 pliegues
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    # Entrenamiento del modelo. Separar etiquetas y atributos
-    atributos_2 = train_2.iloc[:, 1:]
-    etiqueta_2 = train_2.iloc[:, 0]
-    atributos_test_2 = test_2.iloc[:, 1:]
-    etiqueta_test_2 = test_2.iloc[:, 0]
+    # Realizar validación cruzada para max_range_split = 2
+    precision_m2 = []
+    for train_index, test_index in kf.split(dataset_max_2):
+        train_2 = dataset_max_2.iloc[train_index]
+        test_2 = dataset_max_2.iloc[test_index]
 
-    atributos_3 = train_3.iloc[:, 1:]
-    etiqueta_3 = train_3.iloc[:, 0]
-    atributos_test_3 = test_3.iloc[:, 1:]
-    etiqueta_test_3 = test_3.iloc[:, 0]
+        atributos_2 = train_2.iloc[:, 1:]
+        etiqueta_2 = train_2.iloc[:, 0]
+        atributos_test_2 = test_2.iloc[:, 1:]
+        etiqueta_test_2 = test_2.iloc[:, 0]
 
-    # Crear y entrenar el árbol de decisión
-    arbol_max_range_split_2 = ArbolDecision()
-    arbol_max_range_split_2.fit(atributos_2, etiqueta_2, 2, categorical_columns)
+        arbol_max_range_split_2 = ArbolDecision()
+        arbol_max_range_split_2.fit(atributos_2, etiqueta_2, 2, categorical_columns)
 
-    arbol_max_range_split_3 = ArbolDecision()
-    arbol_max_range_split_3.fit(atributos_3, etiqueta_3, 3, categorical_columns)
+        predicciones_m2_test = [arbol_max_range_split_2.predict(x) for x in atributos_test_2.values]
+        precision_m2.append(np.sum(np.array(predicciones_m2_test) == etiqueta_test_2.values) / len(etiqueta_test_2))
 
-    # Evaluar el modelo
-    predicciones_m2_train = [arbol_max_range_split_2.predict(x) for x in atributos_2.values]
-    predicciones_m2_test = [arbol_max_range_split_2.predict(x) for x in atributos_test_2.values]
-    precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta_2.values) / len(etiqueta_2)
-    precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test_2.values) / len(etiqueta_test_2)
-
-    print("ALgoritmo ID3 con max_iter_split = 2:")
-    print(f"Precisión con datos de entrenamiento: {precision_m2_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_m2_test * 100}%")
+    print("Algoritmo ID3 con max_iter_split = 2:")
+    print(f"Precisión promedio: {np.mean(precision_m2) * 100}%")
+    print(f"Desviación estándar: {np.std(precision_m2) * 100}%")
     print('\n')
 
-    predicciones_m3_train = [arbol_max_range_split_3.predict(x) for x in atributos_3.values]
-    predicciones_m3_test = [arbol_max_range_split_3.predict(x) for x in atributos_test_3.values]
-    precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta_3.values) / len(etiqueta_3)
-    precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test_3.values) / len(etiqueta_test_3)
+    # Realizar validación cruzada para max_range_split = 3
+    precision_m3 = []
+    for train_index, test_index in kf.split(dataset_max_3):
+        train_3 = dataset_max_3.iloc[train_index]
+        test_3 = dataset_max_3.iloc[test_index]
 
-    print("ALgoritmo ID3 con max_iter_split = 3:")
-    print(f"Precisión con datos de entrenamiento: {precision_m3_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_m3_test * 100}%")
+        atributos_3 = train_3.iloc[:, 1:]
+        etiqueta_3 = train_3.iloc[:, 0]
+        atributos_test_3 = test_3.iloc[:, 1:]
+        etiqueta_test_3 = test_3.iloc[:, 0]
+
+        arbol_max_range_split_3 = ArbolDecision()
+        arbol_max_range_split_3.fit(atributos_3, etiqueta_3, 3, categorical_columns)
+
+        predicciones_m3_test = [arbol_max_range_split_3.predict(x) for x in atributos_test_3.values]
+        precision_m3.append(np.sum(np.array(predicciones_m3_test) == etiqueta_test_3.values) / len(etiqueta_test_3))
+
+    print("Algoritmo ID3 con max_iter_split = 3:")
+    print(f"Precisión promedio: {np.mean(precision_m3) * 100}%")
+    print(f"Desviación estándar: {np.std(precision_m3) * 100}%")
     print('\n')
