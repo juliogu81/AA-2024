@@ -7,7 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import pandas as pd
 from itertools import combinations
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_val_score
 
 
 def calcular_entropia(etiqueta):
@@ -215,12 +215,13 @@ if __name__ == '__main__':
     DATASET_FILE = 'lab1_dataset.csv'
     dataset = pd.read_csv(DATASET_FILE, sep=",").add_prefix("c")
 
-    #Se elimina del dataset la primera columna ya que no es un atributo. Corresponde al ID del paciente
+    # Se elimina del dataset la primera columna ya que no es un atributo. Corresponde al ID del paciente
     dataset = dataset.drop(dataset.columns[0], axis=1)
 
+    # Índices de columnas categóricas
     categorical_columns = [1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
 
-    # Crear el preprocesador
+    # Crear el preprocesador para las columnas categóricas
     preprocessor = ColumnTransformer(
         transformers=[
             ('cat', OneHotEncoder(), categorical_columns)
@@ -228,217 +229,90 @@ if __name__ == '__main__':
         remainder='passthrough'  # Las columnas no categóricas se dejan tal cual
     )
 
-    #Dividimos el dataset en entrenamiento y prueba
-    train, test = model_selection.train_test_split(dataset, test_size=0.2, random_state=42)
+    # Definir atributos y etiqueta desde el dataset completo
+    atributos = dataset.iloc[:, 1:].values  # Todas las columnas menos la primera (función objetivo)
+    etiqueta = dataset.iloc[:, 0].values    # Primera columna como etiqueta
 
-    # Entrenamiento del modelo. La primer columna es el cid (funcion objetivo). Se separa en etiqueta, el resto son atributos
-    atributos = train.iloc[:, 1:].values
-    etiqueta = train.iloc[:, 0].values
-
-    # Conjunto de prueba
-    atributos_test = test.iloc[:, 1:].values
-    etiqueta_test = test.iloc[:, 0].values
-  
-
-
-    print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 2")
-    arbol_m2 = ArbolDecision()
-    arbol_m2.fit(atributos, etiqueta, 2, categorical_columns)
-
-    # Entrenar el árbol de decisión con max_iter_split = 3
-    print("Se está entrenando el modelo con Algoritmo ID3 con max_iter_split = 3")
-    arbol_m3 = ArbolDecision()
-    arbol_m3.fit(atributos, etiqueta, 3, categorical_columns)
-
-    
-
-    
-
-    # Entrenar con DecisionTreeClassifier con criterion = 'gini'
-    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'gini'")
-    dt_classifier_gini = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', DecisionTreeClassifier(random_state=42))
-    ])
-    dt_classifier_gini.fit(atributos, etiqueta)
-
-    # Entrenar con DecisionTreeClassifier con criterion = 'entropy'
-    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'entropy'")
-    dt_classifier_entropy = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', DecisionTreeClassifier(random_state=42, criterion='entropy'))
-    ])
-    dt_classifier_entropy.fit(atributos, etiqueta)
-
-    # Entrenar con DecisionTreeClassifier con criterion = 'log_loss'
-    print("Se está entrenando el modelo con DecisionTreeClassifier con criterion = 'log_loss'")
-    dt_classifier_log_loss = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', DecisionTreeClassifier(random_state=42, criterion='log_loss'))
-    ])
-    dt_classifier_log_loss.fit(atributos, etiqueta)
-
-    # Entrenar y evaluar RandomForestClassifier con criterion = 'gini'
-    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'gini'")
-    rf_classifier_gini = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', RandomForestClassifier(random_state=42))
-    ])
-    rf_classifier_gini.fit(atributos, etiqueta)
-
-    # Entrenar y evaluar RandomForestClassifier con criterion = 'entropy'
-    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'entropy'")
-    rf_classifier_entropy = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', RandomForestClassifier(random_state=42, criterion= 'entropy'))
-    ])
-    rf_classifier_entropy.fit(atributos, etiqueta)
-
-    # Entrenar y evaluar RandomForestClassifier con criterion = 'log_loss'
-    print("Se está entrenando el modelo con RandomForestClassifier con criterion = 'log_loss'")
-    rf_classifier_log_loss = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('classifier', RandomForestClassifier(random_state=42, criterion= 'log_loss'))
-    ])
-    rf_classifier_log_loss.fit(atributos, etiqueta)
-
-    # Imprimir una linea en blanco
-    print('\n')
-    # Hacer predicciones y calcular la precisión
-    print("Evaluación de los modelos:")
-    print('\n')
-    
-    """ print("\n------ Resultados de la Validación Cruzada ------")
-    print(f"Precisión promedio con max_iter_split = 2: {precision_promedio_m2 * 100:.2f}%")
-    print(f"Precisión promedio con max_iter_split = 3: {precision_promedio_m3 * 100:.2f}%") """
-    
-    
-    predicciones_m2_train = [arbol_m2.predict(x) for x in atributos]
-    predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
-    precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta) / len(etiqueta)
-    precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test) / len(etiqueta_test)
-    print("ALgoritmo ID3 con max_iter_split = 2:")
-    print(f"Precisión con datos de entrenamiento: {precision_m2_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_m2_test * 100}%")
-    print('\n')
-
-    predicciones_m3_train = [arbol_m3.predict(x) for x in atributos]
-    predicciones_m3_test = [arbol_m3.predict(x) for x in atributos_test]
-    precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta) / len(etiqueta)
-    precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test) / len(etiqueta_test)
-    print("ALgoritmo ID3 con max_iter_split = 3:")
-    print(f"Precisión con datos de entrenamiento: {precision_m3_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_m3_test * 100}%")
-    print('\n')
-
-    predicciones_dt_gini_train = dt_classifier_gini.predict(atributos)
-    predicciones_dt_gini_test = dt_classifier_gini.predict(atributos_test)
-    precision_dt_gini_train = np.sum(predicciones_dt_gini_train == etiqueta) / len(etiqueta) 
-    precision_dt_gini_test = np.sum(predicciones_dt_gini_test == etiqueta_test) / len(etiqueta_test)
-    print("DecisionTreeClassifier con cirterion = 'gini':")
-    print(f"Precisión con datos de entrenamiento: {precision_dt_gini_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_dt_gini_test * 100}%")
-    print('\n')
-
-    predicciones_dt_entropy_train = dt_classifier_entropy.predict(atributos)
-    predicciones_dt_entropy_test = dt_classifier_entropy.predict(atributos_test)
-    precision_dt_entropy_train = np.sum(predicciones_dt_entropy_train == etiqueta) / len(etiqueta) 
-    precision_dt_entropy_test = np.sum(predicciones_dt_entropy_test == etiqueta_test) / len(etiqueta_test)
-    print("DecisionTreeClassifier con criterion = 'entropy':")
-    print(f"Precisión con datos de entrenamiento: {precision_dt_entropy_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_dt_entropy_test * 100}%")
-    print('\n')
-    
-    predicciones_dt_log_loss_train = dt_classifier_log_loss.predict(atributos)
-    predicciones_dt_log_loss_test = dt_classifier_log_loss.predict(atributos_test)
-    precision_dt_log_loss_train = np.sum(predicciones_dt_log_loss_train == etiqueta) / len(etiqueta) 
-    precision_dt_log_loss_test = np.sum(predicciones_dt_log_loss_test == etiqueta_test) / len(etiqueta_test)
-    print("DecisionTreeClassifier con criterion = 'log_loss':")
-    print(f"Precisión con datos de entrenamiento: {precision_dt_log_loss_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_dt_log_loss_test * 100}%")
-    print('\n')
-
-    predicciones_rf_gini_train = rf_classifier_gini.predict(atributos)
-    predicciones_rf_gini_test = rf_classifier_gini.predict(atributos_test)
-    precision_rf_gini_train = np.sum(predicciones_rf_gini_train == etiqueta) / len(etiqueta)
-    precision_rf_gini_test = np.sum(predicciones_rf_gini_test == etiqueta_test) / len(etiqueta_test)
-    print("RandomForestClassifier con criterion = 'gini':")
-    print(f"Precisión con datos de entrenamiento: {precision_rf_gini_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_rf_gini_test * 100}%")
-    print('\n')
-
-    predicciones_rf_entropy_train = rf_classifier_entropy.predict(atributos)
-    predicciones_rf_entropy_test = rf_classifier_entropy.predict(atributos_test)
-    precision_rf_entropy_train = np.sum(predicciones_rf_entropy_train == etiqueta) / len(etiqueta)
-    precision_rf_entropy_test = np.sum(predicciones_rf_entropy_test == etiqueta_test) / len(etiqueta_test)
-    print("RandomForestClassifier con criterion = 'entropy':")
-    print(f"Precisión con datos de entrenamiento: {precision_rf_entropy_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_rf_entropy_test * 100}%")
-    print('\n')
-
-    predicciones_rf_log_loss_train = rf_classifier_log_loss.predict(atributos)
-    predicciones_rf_log_loss_test = rf_classifier_log_loss.predict(atributos_test)
-    precision_rf_log_loss_train = np.sum(predicciones_rf_log_loss_train == etiqueta) / len(etiqueta)
-    precision_rf_log_loss_test = np.sum(predicciones_rf_log_loss_test == etiqueta_test) / len(etiqueta_test)
-    print("RandomForestClassifier con criterion = 'log_loss':")
-    print(f"Precisión con datos de entrenamiento: {precision_rf_log_loss_train * 100}%")
-    print(f"Precisión con datos de prueba: {precision_rf_log_loss_test * 100}%")
-
-  # Configurar la validación cruzada con 5 pliegues
+    # Configurar la validación cruzada con 5 pliegues
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    # Inicializar listas para almacenar la precisión de cada iteración
+
+    # Lista de modelos a evaluar
+    modelos = [
+        ('DecisionTreeClassifier con criterion = gini', DecisionTreeClassifier(random_state=42)),
+        ('DecisionTreeClassifier con criterion = entropy', DecisionTreeClassifier(random_state=42, criterion='entropy')),
+        ('DecisionTreeClassifier con criterion = log_loss', DecisionTreeClassifier(random_state=42, criterion='log_loss')),
+        ('RandomForestClassifier con criterion = gini', RandomForestClassifier(random_state=42)),
+        ('RandomForestClassifier con criterion = entropy', RandomForestClassifier(random_state=42, criterion='entropy')),
+        ('RandomForestClassifier con criterion = log_loss', RandomForestClassifier(random_state=42, criterion='log_loss'))
+    ]
+
+    # Evaluar cada modelo con validación cruzada
+    for nombre, modelo in modelos:
+        print(f"\nEvaluando {nombre}")
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('classifier', modelo)
+        ])
+        
+        # Utilizar cross_val_score para realizar validación cruzada
+        scores = cross_val_score(pipeline, atributos, etiqueta, cv=kf, scoring='accuracy')
+        
+        # Imprimir resultados
+        print(f"Precisión promedio: {np.mean(scores) * 100:.2f}%")
+        print(f"Desviación estándar de la precisión: {np.std(scores) * 100:.2f}%")
+    
+    # Validación cruzada manual con tu algoritmo implementado
     precisiones_m2_train = []
     precisiones_m2_test = []
     precisiones_m3_train = []
     precisiones_m3_test = []
 
-# Validación cruzada manual con tu algoritmo implementado
-for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
-    atributos_train, atributos_test = atributos[train_index], atributos[test_index]
-    etiqueta_train, etiqueta_test = etiqueta[train_index], etiqueta[test_index]
+    for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
+        atributos_train, atributos_test = atributos[train_index], atributos[test_index]
+        etiqueta_train, etiqueta_test = etiqueta[train_index], etiqueta[test_index]
 
-    print(f"\n------ Pliegue {fold} ------")
+        print(f"\n------ Pliegue {fold} ------")
 
-    # Entrenar el modelo con max_iter_split = 2
-    arbol_m2 = ArbolDecision()
-    arbol_m2.fit(atributos_train, etiqueta_train, 2, categorical_columns)
-    
-    # Predecir y calcular precisión en datos de entrenamiento
-    predicciones_m2_train = [arbol_m2.predict(x) for x in atributos_train]
-    precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta_train) / len(etiqueta_train)
-    precisiones_m2_train.append(precision_m2_train)
-    print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {precision_m2_train * 100:.2f}%")
-    
-    # Predecir y calcular precisión en datos de prueba
-    predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
-    precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test) / len(etiqueta_test)
-    precisiones_m2_test.append(precision_m2_test)
-    print(f"Precisión en datos de prueba con max_iter_split = 2: {precision_m2_test * 100:.2f}%")
+        # Entrenar el modelo con max_iter_split = 2
+        arbol_m2 = ArbolDecision()
+        arbol_m2.fit(atributos_train, etiqueta_train, 2, categorical_columns)
+        
+        # Predecir y calcular precisión en datos de entrenamiento
+        predicciones_m2_train = [arbol_m2.predict(x) for x in atributos_train]
+        precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta_train) / len(etiqueta_train)
+        precisiones_m2_train.append(precision_m2_train)
+        print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {precision_m2_train * 100:.2f}%")
+        
+        # Predecir y calcular precisión en datos de prueba
+        predicciones_m2_test = [arbol_m2.predict(x) for x in atributos_test]
+        precision_m2_test = np.sum(np.array(predicciones_m2_test) == etiqueta_test) / len(etiqueta_test)
+        precisiones_m2_test.append(precision_m2_test)
+        print(f"Precisión en datos de prueba con max_iter_split = 2: {precision_m2_test * 100:.2f}%")
 
-    # Entrenar el modelo con max_iter_split = 3
-    arbol_m3 = ArbolDecision()
-    arbol_m3.fit(atributos_train, etiqueta_train, 3, categorical_columns)
-    
-    # Predecir y calcular precisión en datos de entrenamiento
-    predicciones_m3_train = [arbol_m3.predict(x) for x in atributos_train]
-    precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta_train) / len(etiqueta_train)
-    precisiones_m3_train.append(precision_m3_train)
-    print(f"Precisión en datos de entrenamiento con max_iter_split = 3: {precision_m3_train * 100:.2f}%")
-    
-    # Predecir y calcular precisión en datos de prueba
-    predicciones_m3_test = [arbol_m3.predict(x) for x in atributos_test]
-    precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test) / len(etiqueta_test)
-    precisiones_m3_test.append(precision_m3_test)
-    print(f"Precisión en datos de prueba con max_iter_split = 3: {precision_m3_test * 100:.2f}%")
+        # Entrenar el modelo con max_iter_split = 3
+        arbol_m3 = ArbolDecision()
+        arbol_m3.fit(atributos_train, etiqueta_train, 3, categorical_columns)
+        
+        # Predecir y calcular precisión en datos de entrenamiento
+        predicciones_m3_train = [arbol_m3.predict(x) for x in atributos_train]
+        precision_m3_train = np.sum(np.array(predicciones_m3_train) == etiqueta_train) / len(etiqueta_train)
+        precisiones_m3_train.append(precision_m3_train)
+        print(f"Precisión en datos de entrenamiento con max_iter_split = 3: {precision_m3_train * 100:.2f}%")
+        
+        # Predecir y calcular precisión en datos de prueba
+        predicciones_m3_test = [arbol_m3.predict(x) for x in atributos_test]
+        precision_m3_test = np.sum(np.array(predicciones_m3_test) == etiqueta_test) / len(etiqueta_test)
+        precisiones_m3_test.append(precision_m3_test)
+        print(f"Precisión en datos de prueba con max_iter_split = 3: {precision_m3_test * 100:.2f}%")
 
-# Calcular la precisión promedio de los 5 pliegues para cada modelo
-precision_promedio_m2_train = np.mean(precisiones_m2_train)
-precision_promedio_m2_test = np.mean(precisiones_m2_test)
-precision_promedio_m3_train = np.mean(precisiones_m3_train)
-precision_promedio_m3_test = np.mean(precisiones_m3_test)
+    # Calcular la precisión promedio de los 5 pliegues para cada modelo
+    precision_promedio_m2_train = np.mean(precisiones_m2_train)
+    precision_promedio_m2_test = np.mean(precisiones_m2_test)
+    precision_promedio_m3_train = np.mean(precisiones_m3_train)
+    precision_promedio_m3_test = np.mean(precisiones_m3_test)
 
-print("\n------ Resultados de la Validación Cruzada ------")
-print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
-print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
-print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 3: {precision_promedio_m3_train * 100:.2f}%")
-print(f"Precisión promedio en datos de prueba con max_iter_split = 3: {precision_promedio_m3_test * 100:.2f}%")
+    print("\n------ Resultados de la Validación Cruzada ------")
+    print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
+    print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
+    print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 3: {precision_promedio_m3_train * 100:.2f}%")
+    print(f"Precisión promedio en datos de prueba con max_iter_split = 3: {precision_promedio_m3_test * 100:.2f}%")
