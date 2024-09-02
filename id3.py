@@ -102,13 +102,6 @@ def _encontrar_mejores_puntos_corte(atributos, atributo, indice, etiqueta, max_r
     return puntos_corte
    
 
-
-
-
-
-
-
-
 class ArbolDecision:
     def __init__(self):
         self.arbol = None
@@ -261,7 +254,7 @@ if __name__ == '__main__':
         print(f"Precisión promedio: {np.mean(scores) * 100:.2f}%")
         print(f"Desviación estándar de la precisión: {np.std(scores) * 100:.2f}%")
     
-    # Validación cruzada manual con tu algoritmo implementado
+    # Validación cruzada manual con nuestro algoritmo ID3 implementado
     precisiones_m2_train = []
     precisiones_m2_test = []
     precisiones_m3_train = []
