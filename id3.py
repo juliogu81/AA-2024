@@ -246,6 +246,7 @@ if __name__ == '__main__':
         ('RandomForestClassifier con criterion = log_loss', RandomForestClassifier(random_state=42, criterion='log_loss'))
     ]
 
+    print("\n------ Resultados de la Validación Cruzada en modelos de scikit-learn------")
     # Evaluar cada modelo con validación cruzada
     for nombre, modelo in modelos:
         print(f"\nEvaluando {nombre}")
@@ -266,6 +267,8 @@ if __name__ == '__main__':
     precisiones_m2_test = []
     precisiones_m3_train = []
     precisiones_m3_test = []
+
+    print("\n------ Resultados de pliegues en ID3 con max_range_split = 2 y 3------")
 
     for fold, (train_index, test_index) in enumerate(kf.split(atributos), 1):
         atributos_train, atributos_test = atributos[train_index], atributos[test_index]
@@ -319,7 +322,7 @@ if __name__ == '__main__':
     precision_desviacion_m3_test = np.std(precisiones_m3_test)
 
 
-    print("\n------ Resultados de la Validación Cruzada ------")
+    print("\n------ Resultados de la Validación Cruzada para max_range_split = 2 y 3------")
     print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
     print(f"Desviación estándar en datos de entrenamiento con max_range_split = 2: {precision_desviacion_m2_train * 100:.2f}%\n")
     print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
@@ -344,10 +347,13 @@ if __name__ == '__main__':
     for col in range(atributos_max_range_split_2.shape[1]):
         if col not in columnas_categoricas:
             punto_corte_2 = _encontrar_mejores_puntos_corte(atributos_max_range_split_2, atributos_max_range_split_2[:, col], col, etiqueta, 2)
-            atributos_max_range_split_2[:, col] = pd.cut(atributos_max_range_split_2[:, col], bins=[-np.inf] + punto_corte_2 + [np.inf], labels=range(len(punto_corte_2)+1)).astype(int)
+            atributos_max_range_split_2[:, col] = pd.cut(atributos_max_range_split_2[:, col],  bins=[-np.inf, punto_corte_2[0], np.inf], labels=range(len(punto_corte_2)+1)).astype(int)
             
             puntos_corte_3 = _encontrar_mejores_puntos_corte(atributos_max_range_split_3, atributos_max_range_split_3[:, col], col, etiqueta, 3)
-            atributos_max_range_split_3[:, col] = pd.cut(atributos_max_range_split_3[:, col], bins=[-np.inf] + puntos_corte_3 + [np.inf], labels=range(len(puntos_corte_3)+1)).astype(int)
+            if (len(puntos_corte_3) == 1):
+                atributos_max_range_split_3[:, col] = pd.cut(atributos_max_range_split_3[:, col],  bins=[-np.inf, puntos_corte_3[0], np.inf], labels=range(len(puntos_corte_3)+1)).astype(int)
+            else:
+                atributos_max_range_split_3[:, col] = pd.cut(atributos_max_range_split_3[:, col],  bins=[-np.inf, puntos_corte_3[0], puntos_corte_3[1], np.inf], labels=range(len(puntos_corte_3)+1)).astype(int)
 
     # Convertir `etiqueta` a una forma de columna para la concatenación
     etiqueta_columna = etiqueta.reshape(-1, 1)
@@ -361,7 +367,7 @@ if __name__ == '__main__':
     # Preparar validación cruzada de 5 pliegues
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    print("Entrenando los modelos")
+    print("\n------Resultados de pliegues en ID3 con max_range_split = 2------")
     # Realizar validación cruzada para max_range_split = 2
     i = 1 
     precision_m2_test = []
@@ -382,23 +388,33 @@ if __name__ == '__main__':
 
 
         predicciones_m2_train = [arbol_max_range_split_2.predict(x) for x in atributos_2]
-        precision_m2_train = np.sum(np.array(predicciones_m2_train) == etiqueta_2) / len(etiqueta_2)
-        print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {precision_m2_train * 100:.2f}%")
+        
+        print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {np.sum(np.array(predicciones_m2_train) == etiqueta_2) / len(etiqueta_2) * 100:.2f}%")
         predicciones_m2_test = [arbol_max_range_split_2.predict(x) for x in atributos_test_2]
-        print(f"Precisión en datos de entrenamiento con max_iter_split = 2: {precision_m2_train * 100:.2f}%")
+        print(f"Precisión en datos de evaluación con max_iter_split = 2: {np.sum(np.array(predicciones_m2_test) == etiqueta_test_2) / len(etiqueta_test_2) * 100:.2f}%")
 
-        precision_m2.append(np.sum(np.array(predicciones_m2_test) == etiqueta_test_2) / len(etiqueta_test_2))
+        precision_m2_train.append(np.sum(np.array(predicciones_m2_train) == etiqueta_2) / len(etiqueta_2))
+        precision_m2_test.append(np.sum(np.array(predicciones_m2_test) == etiqueta_test_2) / len(etiqueta_test_2))
 
-    print("\n-------Resultados--------")
+    print("\n-------Resultados de la validación cruzada--------")
 
-    print("Algoritmo ID3 con max_iter_split = 2:")
-    print(f"Precisión promedio: {np.mean(precision_m2) * 100}%")
-    print(f"Desviación estándar: {np.std(precision_m2) * 100}%")
+    print("Datos de entrenamiento:")
+    print(f"Precisión promedio: {np.mean(precision_m2_train) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m2_train) * 100:.2f}%")
+    print('\n')
+    print("Datos de evaluación:")
+    print(f"Precisión promedio: {np.mean(precision_m2_test) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m2_test) * 100:.2f}%")
     print('\n')
 
-    # Realizar validación cruzada para max_range_split = 3
-    precision_m3 = []
+    print("\n------Resultados de pliegues en ID3 con max_range_split = 3------")
+     # Realizar validación cruzada para max_range_split = 3
+    i = 1 
+    precision_m3_test = []
+    precision_m3_train = []
     for train_index, test_index in kf.split(dataset_max_3):
+        print(f"\n------ Pliegue {i} ------")
+        i += 1
         train_3 = dataset_max_3[train_index]
         test_3 = dataset_max_3[test_index]
 
@@ -410,10 +426,23 @@ if __name__ == '__main__':
         arbol_max_range_split_3 = ArbolDecision()
         arbol_max_range_split_3.fit(atributos_3, etiqueta_3, 3, columnas_categoricas)
 
-        predicciones_m3_test = [arbol_max_range_split_3.predict(x) for x in atributos_test_3]
-        precision_m3.append(np.sum(np.array(predicciones_m3_test) == etiqueta_test_3) / len(etiqueta_test_3))
 
-    print("Algoritmo ID3 con max_iter_split = 3:")
-    print(f"Precisión promedio: {np.mean(precision_m3) * 100}%")
-    print(f"Desviación estándar: {np.std(precision_m3) * 100}%")
+        predicciones_m3_train = [arbol_max_range_split_3.predict(x) for x in atributos_3]
+        
+        print(f"Precisión en datos de entrenamiento con max_iter_split = 3: {np.sum(np.array(predicciones_m3_train) == etiqueta_3) / len(etiqueta_3) * 100:.2f}%")
+        predicciones_m3_test = [arbol_max_range_split_3.predict(x) for x in atributos_test_3]
+        print(f"Precisión en datos de evaluación con max_iter_split = 3: {np.sum(np.array(predicciones_m3_test) == etiqueta_test_3) / len(etiqueta_test_3) * 100:.2f}%")
+
+        precision_m3_train.append(np.sum(np.array(predicciones_m3_train) == etiqueta_3) / len(etiqueta_3))
+        precision_m3_test.append(np.sum(np.array(predicciones_m3_test) == etiqueta_test_3) / len(etiqueta_test_3))
+
+    print("\n-------Resultados de la validación cruzada--------")
+
+    print("Datos de entrenamiento:")
+    print(f"Precisión promedio: {np.mean(precision_m3_train) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m3_train) * 100:.2f}%")
+    print('\n')
+    print("Datos de evaluación:")
+    print(f"Precisión promedio: {np.mean(precision_m3_test) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m3_test) * 100:.2f}%")
     print('\n')
