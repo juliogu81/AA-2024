@@ -228,6 +228,8 @@ if __name__ == '__main__':
     dataset_max_2 = pd.concat([etiqueta, atributos_max_range_split_2], axis=1)
     dataset_max_3 = pd.concat([etiqueta, atributos_max_range_split_3], axis=1)
 
+    categorical_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 , 21, 22, 23]
+
     # Preparar validación cruzada de 5 pliegues
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
