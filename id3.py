@@ -260,7 +260,7 @@ if __name__ == '__main__':
         
         # Imprimir resultados
         print(f"Precisión promedio: {np.mean(scores) * 100:.2f}%")
-        print(f"Desviación estándar de la precisión: {np.std(scores) * 100:.2f}%")
+        print(f"Desviación estándar de la precisión: {np.std(scores) * 100:.2f}")
     
     # Validación cruzada manual con nuestro algoritmo ID3 implementado
     precisiones_m2_train = []
@@ -324,14 +324,14 @@ if __name__ == '__main__':
 
     print("\n------ Resultados de la Validación Cruzada para max_range_split = 2 y 3------")
     print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 2: {precision_promedio_m2_train * 100:.2f}%")
-    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 2: {precision_desviacion_m2_train * 100:.2f}%\n")
+    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 2: {precision_desviacion_m2_train * 100:.2f}\n")
     print(f"Precisión promedio en datos de prueba con max_iter_split = 2: {precision_promedio_m2_test * 100:.2f}%")
-    print(f"Desviación estándar en datos de prueba con max_range_split = 2: {precision_desviacion_m2_test * 100:.2f}%\n")
+    print(f"Desviación estándar en datos de prueba con max_range_split = 2: {precision_desviacion_m2_test * 100:.2f}\n")
 
     print(f"Precisión promedio en datos de entrenamiento con max_iter_split = 3: {precision_promedio_m3_train * 100:.2f}%")
-    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 3: {precision_desviacion_m3_train * 100:.2f}%\n")
+    print(f"Desviación estándar en datos de entrenamiento con max_range_split = 3: {precision_desviacion_m3_train * 100:.2f}\n")
     print(f"Precisión promedio en datos de prueba con max_iter_split = 3: {precision_promedio_m3_test * 100:.2f}%")
-    print(f"Desviación estándar en datos de prueba con max_range_split = 3: {precision_desviacion_m3_test * 100:.2f}%\n")
+    print(f"Desviación estándar en datos de prueba con max_range_split = 3: {precision_desviacion_m3_test * 100:.2f}\n")
 
 
 
@@ -400,11 +400,11 @@ if __name__ == '__main__':
 
     print("Datos de entrenamiento:")
     print(f"Precisión promedio: {np.mean(precision_m2_train) * 100:.2f}%")
-    print(f"Desviación estándar: {np.std(precision_m2_train) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m2_train) * 100:.2f}")
     print('\n')
     print("Datos de evaluación:")
     print(f"Precisión promedio: {np.mean(precision_m2_test) * 100:.2f}%")
-    print(f"Desviación estándar: {np.std(precision_m2_test) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m2_test) * 100:.2f}")
     print('\n')
 
     print("\n------Resultados de pliegues en ID3 con max_range_split = 3------")
@@ -440,9 +440,9 @@ if __name__ == '__main__':
 
     print("Datos de entrenamiento:")
     print(f"Precisión promedio: {np.mean(precision_m3_train) * 100:.2f}%")
-    print(f"Desviación estándar: {np.std(precision_m3_train) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m3_train) * 100:.2f}")
     print('\n')
     print("Datos de evaluación:")
     print(f"Precisión promedio: {np.mean(precision_m3_test) * 100:.2f}%")
-    print(f"Desviación estándar: {np.std(precision_m3_test) * 100:.2f}%")
+    print(f"Desviación estándar: {np.std(precision_m3_test) * 100:.2f}")
     print('\n')
