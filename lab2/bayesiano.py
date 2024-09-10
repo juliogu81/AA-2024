@@ -8,6 +8,69 @@ from sklearn.pipeline import Pipeline
 import pandas as pd
 from itertools import combinations
 from sklearn.model_selection import KFold, cross_val_score
+from collections import defaultdict
+
+class Bayesiano:
+    def __init__(self):
+        self.class_probs = {}  # Probabilidades P(y)
+        self.feature_probs = defaultdict(lambda: defaultdict(dict))  # Probabilidades P(x_i|y)
+        self.class_counts = defaultdict(int)  # Conteos de clase para P(y)
+        
+    
+    def fit(self, X, y, m=1):
+        n_samples, n_features = X.shape
+        self.class_labels = np.unique(y)
+        self.m = m  # Tamaño equivalente de muestra
+        
+        # Calcular conteos de clase P(y)
+        for label in self.class_labels:
+            self.class_counts[label] = np.sum(y == label)
+            self.class_probs[label] = self.class_counts[label] / n_samples
+            
+            # Calcular conteos de características P(x_i|y)
+            X_label = X[y == label]
+            for i in range(n_features):
+                feature_counts = defaultdict(int)
+                # Contar la frecuencia de cada valor de la característica para la clase 'label'
+                for value in X_label[:, i]:
+                    feature_counts[value] += 1
+                
+                total_counts = len(X_label[:, i])
+                total_values = len(np.unique(X[:, i]))
+                
+                # Almacenar probabilidades ajustadas con el hiperparámetro m
+                for value, count in feature_counts.items():
+                    # P(x_i) para el valor de la característica en todos los datos (no condicionado por clase)
+                    p_xi = np.sum(X[:, i] == value) / n_samples
+                    # Suavizado con el hiperparámetro m
+                    self.feature_probs[label][i][value] = (count + self.m * p_xi) / (total_counts + self.m)
+    
+    def predict(self, x):
+        class_probs = {}
+        
+        # Calcular P(y|X) para cada clase
+        for label in self.class_labels:
+            # Comenzar con P(y)
+            class_prob = self.class_probs[label]
+            
+            # Multiplicar por P(x_i|y) ajustado con m para cada característica categórica
+            for i, value in enumerate(x):
+                if value in self.feature_probs[label][i]:
+                    class_prob *= self.feature_probs[label][i][value]
+                else:
+                    # Si el valor categórico no ha sido visto en el entrenamiento, aplicar suavizado
+                    p_xi = 1 / len(self.feature_probs[label][i])
+                    class_prob *= (self.m * p_xi) / (self.class_counts[label] + self.m)
+            
+            class_probs[label] = class_prob
+        
+        # Predecir la clase con la mayor probabilidad
+        predicted_label = max(class_probs, key=class_probs.get)
+    
+        return predicted_label
+
+
+
 
 
 if __name__ == "__main__":
@@ -17,9 +80,6 @@ if __name__ == "__main__":
 
     # Se elimina del dataset la primera columna ya que no es un atributo. Corresponde al ID del paciente
     dataset = dataset.drop(dataset.columns[0], axis=1)
-
-    # Índices de columnas categóricas
-    columnas_categoricas = [1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
 
     # Definir atributos y etiqueta desde el dataset completo
     atributos = dataset.iloc[:, 1:].values  # Todas las columnas menos la primera (función objetivo)
@@ -34,6 +94,9 @@ if __name__ == "__main__":
     precisiones_m100_test = []
     precisiones_m1000_train = []
     precisiones_m1000_test = []
+
+    # Preparar validación cruzada de 5 pliegues
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
     print("\n------ Resultados de pliegues en algoritmo bayesiano con m = 1, 10, 100 y 1000------")
 
