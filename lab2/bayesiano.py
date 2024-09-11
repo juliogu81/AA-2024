@@ -5,10 +5,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import confusion_matrix
 import pandas as pd
 from itertools import combinations
 from sklearn.model_selection import KFold, cross_val_score
 from collections import defaultdict
+
 
 class Bayesiano:
     def __init__(self):
@@ -120,6 +122,10 @@ if __name__ == "__main__":
             f"Precisión en datos de entrenamiento con m = 1: {precision_m1_train * 100:.2f}%"
         )
 
+        # Generar la matriz de confusión
+        matriz_confusion_m1_train = confusion_matrix(etiqueta_train, predicciones_m1_train)
+        print(f"\nMatriz de confusión en datos de entrenamiento con m = 1:\n{matriz_confusion_m1_train}\n")
+
         # Predecir y calcular precisión en datos de prueba
         predicciones_m1_test = [bayes_m1.predict(x) for x in atributos_test]
         precision_m1_test = np.sum(
@@ -129,6 +135,10 @@ if __name__ == "__main__":
         print(
             f"Precisión en datos de prueba con m = 1: {precision_m1_test * 100:.2f}%"
         )
+
+        # Generar la matriz de confusión
+        matriz_confusion_m1_test = confusion_matrix(etiqueta_test, predicciones_m1_test)
+        print(f"\nMatriz de confusión en datos de prueba con m = 1:\n{matriz_confusion_m1_test}\n")
 
         # Entrenar el modelo con m = 10
         bayes_m10 = Bayesiano()
@@ -144,6 +154,10 @@ if __name__ == "__main__":
             f"Precisión en datos de entrenamiento con m = 10: {precision_m10_train * 100:.2f}%"
         )
 
+        # Generar la matriz de confusión
+        matriz_confusion_m10_train = confusion_matrix(etiqueta_train, predicciones_m10_train)
+        print(f"\nMatriz de confusión en datos de entrenamiento con m = 10:\n{matriz_confusion_m10_train}\n")
+
         # Predecir y calcular precisión en datos de prueba
         predicciones_m10_test = [bayes_m10.predict(x) for x in atributos_test]
         precision_m10_test = np.sum(
@@ -153,6 +167,10 @@ if __name__ == "__main__":
         print(
             f"Precisión en datos de prueba con m = 10: {precision_m10_test * 100:.2f}%"
         )
+
+        # Generar la matriz de confusión
+        matriz_confusion_m10_test = confusion_matrix(etiqueta_test, predicciones_m10_test)
+        print(f"\nMatriz de confusión en datos de prueba con m = 10:\n{matriz_confusion_m10_test}\n")
 
         # Entrenar el modelo con m = 100
         bayes_m100 = Bayesiano()
@@ -168,6 +186,10 @@ if __name__ == "__main__":
             f"Precisión en datos de entrenamiento con m = 100: {precision_m100_train * 100:.2f}%"
         )
 
+        # Generar la matriz de confusión
+        matriz_confusion_m100_train = confusion_matrix(etiqueta_train, predicciones_m100_train)
+        print(f"\nMatriz de confusión en datos de entrenamiento con m = 100:\n{matriz_confusion_m100_train}\n")
+
         # Predecir y calcular precisión en datos de prueba
         predicciones_m100_test = [bayes_m100.predict(x) for x in atributos_test]
         precision_m100_test = np.sum(
@@ -177,6 +199,10 @@ if __name__ == "__main__":
         print(
             f"Precisión en datos de prueba con m = 100: {precision_m100_test * 100:.2f}%"
         )
+
+        # Generar la matriz de confusión
+        matriz_confusion_m100_test = confusion_matrix(etiqueta_test, predicciones_m100_test)
+        print(f"\nMatriz de confusión en datos de prueba con m = 100:\n{matriz_confusion_m100_test}\n")
 
         # Entrenar el modelo con m = 1000
         bayes_m1000 = Bayesiano()
@@ -192,6 +218,10 @@ if __name__ == "__main__":
             f"Precisión en datos de entrenamiento con m = 1000: {precision_m1000_train * 100:.2f}%"
         )
 
+        # Generar la matriz de confusión
+        matriz_confusion_m1000_train = confusion_matrix(etiqueta_train, predicciones_m1000_train)
+        print(f"\nMatriz de confusión en datos de entrenamiento con m = 1000:\n{matriz_confusion_m1000_train}\n")
+
         # Predecir y calcular precisión en datos de prueba
         predicciones_m1000_test = [bayes_m1000.predict(x) for x in atributos_test]
         precision_m1000_test = np.sum(
@@ -201,6 +231,10 @@ if __name__ == "__main__":
         print(
             f"Precisión en datos de prueba con m = 1000: {precision_m1000_test * 100:.2f}%"
         )
+
+        # Generar la matriz de confusión
+        matriz_confusion_m1000_test = confusion_matrix(etiqueta_test, predicciones_m1000_test)
+        print(f"\nMatriz de confusión en datos de prueba con m = 1000:\n{matriz_confusion_m1000_test}\n")
 
 
     # Calcular la precisión promedio de los 5 pliegues para cada modelo
