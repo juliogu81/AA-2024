@@ -56,16 +56,16 @@ class Bayesiano:
         # Calcular P(y|X) para cada clase
         for label in self.class_labels:
             # Comenzar con P(y)
-            class_prob = self.class_probs[label]
+            class_prob = np.log(self.class_probs[label])
             
             # Multiplicar por P(x_i|y) ajustado con m para cada característica categórica
             for i, value in enumerate(x):
                 if value in self.feature_probs[label][i]:
-                    class_prob *= self.feature_probs[label][i][value]
+                    class_prob += np.log(self.feature_probs[label][i][value])
                 else:
                     # Si el valor categórico no ha sido visto en el entrenamiento, aplicar suavizado
                     p_xi = 1 / len(self.feature_probs[label][i])
-                    class_prob *= (self.m * p_xi) / (self.class_counts[label] + self.m)
+                    class_prob += np.log((self.m * p_xi) / (self.class_counts[label] + self.m))
             
             class_probs[label] = class_prob
         
