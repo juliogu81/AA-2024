@@ -5,11 +5,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import confusion_matrix, recall_score
+from sklearn.metrics import confusion_matrix, recall_score, precision_recall_curve
 import pandas as pd
 from itertools import combinations
 from sklearn.model_selection import KFold, cross_val_score
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 
 class Bayesiano:
@@ -104,6 +105,16 @@ if __name__ == "__main__":
     recalls_m1000_train = []
     recalls_m1000_test = []
 
+    # Inicializar listas para almacenar las predicciones y etiquetas verdaderas combinadas de todos los pliegues
+    predicciones_totales_m1 = []
+    etiquetas_totales_m1 = []
+    predicciones_totales_m10 = []
+    etiquetas_totales_m10 = []
+    predicciones_totales_m100 = []
+    etiquetas_totales_m100 = []
+    predicciones_totales_m1000 = []
+    etiquetas_totales_m1000 = []
+
     # Preparar validación cruzada de 5 pliegues
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -155,6 +166,10 @@ if __name__ == "__main__":
         recall_m1_test = recall_score(etiqueta_test, predicciones_m1_test, average='macro')
         recalls_m1_test.append(recall_m1_test)
 
+        # Guardar predicciones y etiquetas para la curva precisión-recall
+        predicciones_totales_m1.extend(predicciones_m1_test)
+        etiquetas_totales_m1.extend(etiqueta_test)
+
         # Entrenar el modelo con m = 10
         bayes_m10 = Bayesiano()
         bayes_m10.fit(atributos_train, etiqueta_train, 10)
@@ -194,6 +209,10 @@ if __name__ == "__main__":
         # Calcular recall en datos de prueba
         recall_m10_test = recall_score(etiqueta_test, predicciones_m10_test, average='macro')
         recalls_m10_test.append(recall_m10_test)
+
+        # Guardar predicciones y etiquetas para la curva precisión-recall
+        predicciones_totales_m10.extend(predicciones_m10_test)
+        etiquetas_totales_m10.extend(etiqueta_test)
 
         # Entrenar el modelo con m = 100
         bayes_m100 = Bayesiano()
@@ -235,6 +254,10 @@ if __name__ == "__main__":
         recall_m100_test = recall_score(etiqueta_test, predicciones_m100_test, average='macro')
         recalls_m100_test.append(recall_m100_test)
 
+        # Guardar predicciones y etiquetas para la curva precisión-recall
+        predicciones_totales_m100.extend(predicciones_m100_test)
+        etiquetas_totales_m100.extend(etiqueta_test)
+
         # Entrenar el modelo con m = 1000
         bayes_m1000 = Bayesiano()
         bayes_m1000.fit(atributos_train, etiqueta_train, 1000)
@@ -275,7 +298,42 @@ if __name__ == "__main__":
         recall_m1000_test = recall_score(etiqueta_test, predicciones_m1000_test, average='macro')
         recalls_m1000_test.append(recall_m1000_test)
 
-    # Calcular el promedio de recall para cada valor de m
+        # Guardar predicciones y etiquetas para la curva precisión-recall
+        predicciones_totales_m1000.extend(predicciones_m1000_test)
+        etiquetas_totales_m1000.extend(etiqueta_test)
+
+    # Convertir las listas de predicciones y etiquetas a numpy arrays
+    predicciones_totales_m1 = np.array(predicciones_totales_m1)
+    etiquetas_totales_m1 = np.array(etiquetas_totales_m1)
+
+    predicciones_totales_m10 = np.array(predicciones_totales_m10)
+    etiquetas_totales_m10 = np.array(etiquetas_totales_m10)
+
+    predicciones_totales_m100 = np.array(predicciones_totales_m100)
+    etiquetas_totales_m100 = np.array(etiquetas_totales_m100)
+
+    predicciones_totales_m1000 = np.array(predicciones_totales_m1000)
+    etiquetas_totales_m1000 = np.array(etiquetas_totales_m1000)
+
+    # Calcular la curva de precisión-recall para cada valor de m
+    precisions_m1, recalls_m1, thresholds_m1 = precision_recall_curve(etiquetas_totales_m1, predicciones_totales_m1)
+    precisions_m10, recalls_m10, thresholds_m10 = precision_recall_curve(etiquetas_totales_m10, predicciones_totales_m10)
+    precisions_m100, recalls_m100, thresholds_m100 = precision_recall_curve(etiquetas_totales_m100, predicciones_totales_m100)
+    precisions_m1000, recalls_m1000, thresholds_m1000 = precision_recall_curve(etiquetas_totales_m1000, predicciones_totales_m1000)
+
+    # Graficar la curva precisión-recall para cada valor de m
+    plt.plot(recalls_m1, precisions_m1, marker='.', label='m = 1')
+    plt.plot(recalls_m10, precisions_m10, marker='.', label='m = 10')
+    plt.plot(recalls_m100, precisions_m100, marker='.', label='m = 100')
+    plt.plot(recalls_m1000, precisions_m1000, marker='.', label='m = 1000')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Curva Precision-Recall')
+    plt.legend()
+    plt.show()
+
+    # Calcular el promedio de recall y precisión para cada valor de m
     precision_promedio_m1_train = np.mean(precisiones_m1_train)
     precision_desviacion_m1_train = np.std(precisiones_m1_train)
     recall_promedio_m1_train = np.mean(recalls_m1_train)
