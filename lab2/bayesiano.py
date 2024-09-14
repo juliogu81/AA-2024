@@ -56,16 +56,16 @@ class Bayesiano:
         # Calcular P(y|X) para cada clase
         for label in self.class_labels:
             # Comenzar con P(y)
-            class_prob = np.log(self.class_probs[label])
+            class_prob = np.log2(self.class_probs[label])
             
             # Multiplicar por P(x_i|y) ajustado con m para cada característica categórica
             for i, value in enumerate(x):
                 if value in self.feature_probs[label][i]:
-                    class_prob += np.log(self.feature_probs[label][i][value])
+                    class_prob += np.log2(self.feature_probs[label][i][value])
                 else:
                     # Si el valor categórico no ha sido visto en el entrenamiento, aplicar suavizado
                     p_xi = 1 / len(self.feature_probs[label][i])
-                    class_prob += np.log((self.m * p_xi) / (self.class_counts[label] + self.m))
+                    class_prob += np.log2((self.m * p_xi) / (self.class_counts[label] + self.m))
             
             class_probs[label] = class_prob
         
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     dataset_discretizado_df = pd.DataFrame(dataset_discretizado, columns=column_names_discretizado)
 
     #Eliminar columnas tras prueba chi-cuadrado
-    dataset_discretizado_df = dataset_discretizado_df.drop(columns=['homo', 'oprior', 'zprior', 'gender'])
+    dataset_discretizado_df = dataset_discretizado_df.drop(columns=['wtkg','hemo','homo', 'karnof', 'oprior', 'zprior', 'preanti', 'gender','cd40','cd820'])
 
     # Extraer los atributos y la etiqueta
     atributos = dataset_discretizado_df.iloc[:, 1:].values  # Todas las columnas menos la primera (la etiqueta)
