@@ -103,7 +103,7 @@ class Bayesiano:
 
 if __name__ == "__main__":
     # Cargar el dataset con encabezados
-    DATASET_FILE = 'lab1_dataset.csv'
+    DATASET_FILE = 'lab2_dataset.csv'
     dataset = pd.read_csv(DATASET_FILE, sep=",")
 
     # Guardar los nombres de las columnas
