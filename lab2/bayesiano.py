@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import confusion_matrix, recall_score, precision_recall_curve, auc
+from sklearn.metrics import confusion_matrix, recall_score, precision_recall_curve, auc, precision_score
 import pandas as pd
 from itertools import combinations
 from sklearn.model_selection import KFold, cross_val_score
@@ -36,7 +36,7 @@ class Bayesiano:
             X_label = X[y == label]
             for i in range(n_features):
                 feature_counts = defaultdict(int)
-                # Contar la frecuencia de cada valor de la característica para la clase 'label'
+                # Contar la frecuencia de cada valor de la característica para la clase
                 for value in X_label[:, i]:
                     feature_counts[value] += 1
                 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     atributos = dataset_discretizado_df.iloc[:, 1:].values  # Todas las columnas menos la primera (la etiqueta)
     etiqueta = dataset_discretizado_df.iloc[:, 0].values    # Primera columna como etiqueta
 
-    # Validación cruzada manual con nuestro algoritmo bayesiano implementado
+    # Inicializar listas para almacenar los valores de recall, precision y acierto
     precisiones_m1_train = []
     precisiones_m1_test = []
     precisiones_m10_train = []
@@ -157,7 +157,6 @@ if __name__ == "__main__":
     precisiones_m1000_train = []
     precisiones_m1000_test = []
 
-    # Inicializar listas para almacenar los valores de recall
     recalls_m1_train = []
     recalls_m1_test = []
     recalls_m10_train = []
@@ -167,7 +166,17 @@ if __name__ == "__main__":
     recalls_m1000_train = []
     recalls_m1000_test = []
 
+    aciertos_m1_train = []
+    aciertos_m1_test = []
+    aciertos_m10_train = []
+    aciertos_m10_test = []
+    aciertos_m100_train = []
+    aciertos_m100_test = []
+    aciertos_m1000_train = []
+    aciertos_m1000_test = []
 
+
+    # Validación cruzada manual con nuestro algoritmo bayesiano implementado
     # Preparar validación cruzada de 5 pliegues
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -183,265 +192,403 @@ if __name__ == "__main__":
         bayes_m1 = Bayesiano()
         bayes_m1.fit(atributos_train, etiqueta_train, 1)
 
-        # Predecir y calcular precisión en datos de entrenamiento
+        # Predecir y calcular acierto en datos de entrenamiento
         predicciones_m1_train = [bayes_m1.predict(x) for x in atributos_train]
-        precision_m1_train = np.sum(
+        acierto_m1_train = np.sum(
             np.array(predicciones_m1_train) == etiqueta_train
         ) / len(etiqueta_train)
+        aciertos_m1_train.append(acierto_m1_train)
+        print(
+            f"Acierto en datos de entrenamiento con m = 1: {acierto_m1_train * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de entrenamiento
+        precision_m1_train = precision_score(etiqueta_train, predicciones_m1_train, average='macro')
         precisiones_m1_train.append(precision_m1_train)
         print(
             f"Precisión en datos de entrenamiento con m = 1: {precision_m1_train * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de entrenamiento
+        recall_m1_train = recall_score(etiqueta_train, predicciones_m1_train, average='macro')
+        recalls_m1_train.append(recall_m1_train)
+        print(
+            f"Recall en datos de entrenamiento con m = 1: {recall_m1_train * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m1_train = confusion_matrix(etiqueta_train, predicciones_m1_train)
         print(f"\nMatriz de confusión en datos de entrenamiento con m = 1:\n{matriz_confusion_m1_train}\n")
 
-        # Calcular recall en datos de entrenamiento
-        recall_m1_train = recall_score(etiqueta_train, predicciones_m1_train, average='macro')
-        recalls_m1_train.append(recall_m1_train)
+       
 
-
-        # Predecir y calcular precisión en datos de prueba
+        # Predecir y calcular acierto en datos de prueba
         predicciones_m1_test = [bayes_m1.predict(x) for x in atributos_test]
-        precision_m1_test = np.sum(
+        acierto_m1_test = np.sum(
             np.array(predicciones_m1_test) == etiqueta_test
         ) / len(etiqueta_test)
+        aciertos_m1_test.append(acierto_m1_test)
+        print(
+            f"Acierto en datos de prueba con m = 1: {acierto_m1_test * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de prueba
+        precision_m1_test = precision_score(etiqueta_test, predicciones_m1_test, average='macro')
         precisiones_m1_test.append(precision_m1_test)
         print(
             f"Precisión en datos de prueba con m = 1: {precision_m1_test * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de prueba
+        recall_m1_test = recall_score(etiqueta_test, predicciones_m1_test, average='macro')
+        recalls_m1_test.append(recall_m1_test)
+        print(
+            f"Recall en datos de prueba con m = 1: {recall_m1_test * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m1_test = confusion_matrix(etiqueta_test, predicciones_m1_test)
         print(f"\nMatriz de confusión en datos de prueba con m = 1:\n{matriz_confusion_m1_test}\n")
 
-        # Calcular recall en datos de prueba
-        recall_m1_test = recall_score(etiqueta_test, predicciones_m1_test, average='macro')
-        recalls_m1_test.append(recall_m1_test)
+        
 
         # Entrenar el modelo con m = 10
         bayes_m10 = Bayesiano()
         bayes_m10.fit(atributos_train, etiqueta_train, 10)
 
-        # Predecir y calcular precisión en datos de entrenamiento
+        # Predecir y calcular acierto en datos de entrenamiento
         predicciones_m10_train = [bayes_m10.predict(x) for x in atributos_train]
-        precision_m10_train = np.sum(
+        acierto_m10_train = np.sum(
             np.array(predicciones_m10_train) == etiqueta_train
         ) / len(etiqueta_train)
+        aciertos_m10_train.append(acierto_m10_train)
+        print(
+            f"Acierto en datos de entrenamiento con m = 10: {acierto_m10_train * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de entrenamiento
+        precision_m10_train = precision_score(etiqueta_train, predicciones_m10_train, average='macro')
         precisiones_m10_train.append(precision_m10_train)
         print(
             f"Precisión en datos de entrenamiento con m = 10: {precision_m10_train * 100:.2f}%"
         )
 
-        # Generar la matriz de confusión
-        matriz_confusion_m10_train = confusion_matrix(etiqueta_train, predicciones_m10_train)
-        print(f"\nMatriz de confusión en datos de entrenamiento con m = 10:\n{matriz_confusion_m10_train}\n")
-
         # Calcular recall en datos de entrenamiento
         recall_m10_train = recall_score(etiqueta_train, predicciones_m10_train, average='macro')
         recalls_m10_train.append(recall_m10_train)
+        print(
+            f"Recall en datos de entrenamiento con m = 10: {recall_m10_train * 100:.2f}%"
+        )
 
-        # Predecir y calcular precisión en datos de prueba
+        # Generar la matriz de confusión
+        matriz_confusion_m10_train = confusion_matrix(etiqueta_train, predicciones_m10_train)
+        print(f"\nMatriz de confusión en datos de entrenamiento con m = 10:\n{matriz_confusion_m10_train}\n")
+        
+
+        # Predecir y calcular acierto en datos de prueba
         predicciones_m10_test = [bayes_m10.predict(x) for x in atributos_test]
-        precision_m10_test = np.sum(
+        acierto_m10_test = np.sum(
             np.array(predicciones_m10_test) == etiqueta_test
         ) / len(etiqueta_test)
+        aciertos_m10_test.append(acierto_m10_test)
+        print(
+            f"Acierto en datos de prueba con m = 10: {acierto_m10_test * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de prueba
+        precision_m10_test = precision_score(etiqueta_test, predicciones_m10_test, average='macro')
         precisiones_m10_test.append(precision_m10_test)
         print(
             f"Precisión en datos de prueba con m = 10: {precision_m10_test * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de prueba
+        recall_m10_test = recall_score(etiqueta_test, predicciones_m10_test, average='macro')
+        recalls_m10_test.append(recall_m10_test)
+        print(
+            f"Recall en datos de prueba con m = 10: {recall_m10_test * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m10_test = confusion_matrix(etiqueta_test, predicciones_m10_test)
         print(f"\nMatriz de confusión en datos de prueba con m = 10:\n{matriz_confusion_m10_test}\n")
 
-        # Calcular recall en datos de prueba
-        recall_m10_test = recall_score(etiqueta_test, predicciones_m10_test, average='macro')
-        recalls_m10_test.append(recall_m10_test)
+        
 
         # Entrenar el modelo con m = 100
         bayes_m100 = Bayesiano()
         bayes_m100.fit(atributos_train, etiqueta_train, 100)
 
-        # Predecir y calcular precisión en datos de entrenamiento
+        # Predecir y calcular acierto en datos de entrenamiento
         predicciones_m100_train = [bayes_m100.predict(x) for x in atributos_train]
-        precision_m100_train = np.sum(
+        acierto_m100_train = np.sum(
             np.array(predicciones_m100_train) == etiqueta_train
         ) / len(etiqueta_train)
+        aciertos_m100_train.append(acierto_m100_train)
+        print(
+            f"Acierto en datos de entrenamiento con m = 100: {acierto_m100_train * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de entrenamiento
+        precision_m100_train = precision_score(etiqueta_train, predicciones_m100_train, average='macro')
         precisiones_m100_train.append(precision_m100_train)
         print(
             f"Precisión en datos de entrenamiento con m = 100: {precision_m100_train * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de entrenamiento
+        recall_m100_train = recall_score(etiqueta_train, predicciones_m100_train, average='macro')
+        recalls_m100_train.append(recall_m100_train)  
+        print(
+            f"Recall en datos de entrenamiento con m = 100: {recall_m100_train * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m100_train = confusion_matrix(etiqueta_train, predicciones_m100_train)
         print(f"\nMatriz de confusión en datos de entrenamiento con m = 100:\n{matriz_confusion_m100_train}\n")
 
-        # Calcular recall en datos de entrenamiento
-        recall_m100_train = recall_score(etiqueta_train, predicciones_m100_train, average='macro')
-        recalls_m100_train.append(recall_m100_train)
 
-        # Predecir y calcular precisión en datos de prueba
+        # Predecir y calcular acierto en datos de prueba
         predicciones_m100_test = [bayes_m100.predict(x) for x in atributos_test]
-        precision_m100_test = np.sum(
+        acierto_m100_test = np.sum(
             np.array(predicciones_m100_test) == etiqueta_test
         ) / len(etiqueta_test)
+        aciertos_m100_test.append(acierto_m100_test)
+        print(
+            f"Acierto en datos de prueba con m = 100: {acierto_m100_test * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de prueba
+        precision_m100_test = precision_score(etiqueta_test, predicciones_m100_test, average='macro')
         precisiones_m100_test.append(precision_m100_test)
         print(
             f"Precisión en datos de prueba con m = 100: {precision_m100_test * 100:.2f}%"
         )
 
+        # Calcular recall en datos de prueba
+        recall_m100_test = recall_score(etiqueta_test, predicciones_m100_test, average='macro')
+        recalls_m100_test.append(recall_m100_test)
+        print(
+            f"Recall en datos de prueba con m = 100: {recall_m100_test * 100:.2f}%"
+        )
         # Generar la matriz de confusión
         matriz_confusion_m100_test = confusion_matrix(etiqueta_test, predicciones_m100_test)
         print(f"\nMatriz de confusión en datos de prueba con m = 100:\n{matriz_confusion_m100_test}\n")
 
-        # Calcular recall en datos de prueba
-        recall_m100_test = recall_score(etiqueta_test, predicciones_m100_test, average='macro')
-        recalls_m100_test.append(recall_m100_test)
 
         # Entrenar el modelo con m = 1000
         bayes_m1000 = Bayesiano()
         bayes_m1000.fit(atributos_train, etiqueta_train, 1000)
 
-        # Predecir y calcular precisión en datos de entrenamiento
+        # Predecir y calcular acierto en datos de entrenamiento
         predicciones_m1000_train = [bayes_m1000.predict(x) for x in atributos_train]
-        precision_m1000_train = np.sum(
+        acierto_m1000_train = np.sum(
             np.array(predicciones_m1000_train) == etiqueta_train
         ) / len(etiqueta_train)
+        aciertos_m1000_train.append(acierto_m1000_train)
+        print(
+            f"Acierto en datos de entrenamiento con m = 1000: {acierto_m1000_train * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de entrenamiento
+        precision_m1000_train = precision_score(etiqueta_train, predicciones_m1000_train, average='macro')
         precisiones_m1000_train.append(precision_m1000_train)
         print(
             f"Precisión en datos de entrenamiento con m = 1000: {precision_m1000_train * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de entrenamiento
+        recall_m1000_train = recall_score(etiqueta_train, predicciones_m1000_train, average='macro')
+        recalls_m1000_train.append(recall_m1000_train)
+        print(
+            f"Recall en datos de entrenamiento con m = 1000: {recall_m1000_train * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m1000_train = confusion_matrix(etiqueta_train, predicciones_m1000_train)
         print(f"\nMatriz de confusión en datos de entrenamiento con m = 1000:\n{matriz_confusion_m1000_train}\n")
 
-        # Calcular recall en datos de entrenamiento
-        recall_m1000_train = recall_score(etiqueta_train, predicciones_m1000_train, average='macro')
-        recalls_m1000_train.append(recall_m1000_train)
 
-        # Predecir y calcular precisión en datos de prueba
+        # Predecir y calcular acierto en datos de prueba
         predicciones_m1000_test = [bayes_m1000.predict(x) for x in atributos_test]
-        precision_m1000_test = np.sum(
+        acierto_m1000_test = np.sum(
             np.array(predicciones_m1000_test) == etiqueta_test
         ) / len(etiqueta_test)
+        aciertos_m1000_test.append(acierto_m1000_test)
+        print(
+            f"Acierto en datos de prueba con m = 1000: {acierto_m1000_test * 100:.2f}%"
+        )
+
+        #Calcular precision en datos de prueba
+        precision_m1000_test = precision_score(etiqueta_test, predicciones_m1000_test, average='macro')
         precisiones_m1000_test.append(precision_m1000_test)
         print(
             f"Precisión en datos de prueba con m = 1000: {precision_m1000_test * 100:.2f}%"
+        )
+
+        # Calcular recall en datos de prueba
+        recall_m1000_test = recall_score(etiqueta_test, predicciones_m1000_test, average='macro')
+        recalls_m1000_test.append(recall_m1000_test)
+        print(
+            f"Recall en datos de prueba con m = 1000: {recall_m1000_test * 100:.2f}%"
         )
 
         # Generar la matriz de confusión
         matriz_confusion_m1000_test = confusion_matrix(etiqueta_test, predicciones_m1000_test)
         print(f"\nMatriz de confusión en datos de prueba con m = 1000:\n{matriz_confusion_m1000_test}\n")
 
-        # Calcular recall en datos de prueba
-        recall_m1000_test = recall_score(etiqueta_test, predicciones_m1000_test, average='macro')
-        recalls_m1000_test.append(recall_m1000_test)
+        
 
     # Calcular el promedio de recall y precisión para cada valor de m
+    acierto_promedio_m1_train = np.mean(aciertos_m1_train)
+    acierto_desviacion_m1_train = np.std(aciertos_m1_train)
     precision_promedio_m1_train = np.mean(precisiones_m1_train)
-    precision_desviacion_m1_train = np.std(precisiones_m1_train)
     recall_promedio_m1_train = np.mean(recalls_m1_train)
     
+    acierto_promedio_m1_test = np.mean(aciertos_m1_test)
+    acierto_desviacion_m1_test = np.std(aciertos_m1_test)
     precision_promedio_m1_test = np.mean(precisiones_m1_test)
-    precision_desviacion_m1_test = np.std(precisiones_m1_test)
     recall_promedio_m1_test = np.mean(recalls_m1_test)
 
-    
-    precision_promedio_m10_train = np.mean(precisiones_m10_train)
-    precision_desviacion_m10_train = np.std(precisiones_m10_train)    
+    acierto_promedio_m10_train = np.mean(aciertos_m10_train)
+    acierto_desviacion_m10_train = np.std(aciertos_m10_train)
+    precision_promedio_m10_train = np.mean(precisiones_m10_train)   
     recall_promedio_m10_train = np.mean(recalls_m10_train)
 
-
+    acierto_promedio_m10_test = np.mean(aciertos_m10_test)
+    acierto_desviacion_m10_test = np.std(aciertos_m10_test)
     precision_promedio_m10_test = np.mean(precisiones_m10_test)
-    precision_desviacion_m10_test = np.std(precisiones_m10_test)
     recall_promedio_m10_test = np.mean(recalls_m10_test)
 
-    
-    precision_promedio_m100_train = np.mean(precisiones_m100_train)
-    precision_desviacion_m100_train = np.std(precisiones_m100_train)    
+    acierto_promedio_m100_train = np.mean(aciertos_m100_train)
+    acierto_desviacion_m100_train = np.std(aciertos_m100_train)
+    precision_promedio_m100_train = np.mean(precisiones_m100_train)    
     recall_promedio_m100_train = np.mean(recalls_m100_train)
 
+    acierto_promedio_m100_test = np.mean(aciertos_m100_test)
+    acierto_desviacion_m100_test = np.std(aciertos_m100_test)
     precision_promedio_m100_test = np.mean(precisiones_m100_test)
-    precision_desviacion_m100_test = np.std(precisiones_m100_test)
     recall_promedio_m100_test = np.mean(recalls_m100_test)
 
+    acierto_promedio_m1000_train = np.mean(aciertos_m1000_train)
+    acierto_desviacion_m1000_train = np.std(aciertos_m1000_train)
     precision_promedio_m1000_train = np.mean(precisiones_m1000_train)
-    precision_desviacion_m1000_train = np.std(precisiones_m1000_train)
     recall_promedio_m1000_train = np.mean(recalls_m1000_train)
 
-    precision_promedio_m1000_test = np.mean(precisiones_m1000_test)
-    precision_desviacion_m1000_test = np.std(precisiones_m1000_test)   
+    acierto_promedio_m1000_test = np.mean(aciertos_m1000_test)
+    acierto_desviacion_m1000_test = np.std(aciertos_m100_test)
+    precision_promedio_m1000_test = np.mean(precisiones_m1000_test)   
     recall_promedio_m1000_test = np.mean(recalls_m1000_test)
 
     # Mostrar resultados
     print(
-        "\n------ Resultados de la Validación Cruzada para m = 1, 10, 100 y 1000------"
+        "\n------ Resultados de la Validación Cruzada para m = 1, 10, 100 y 1000------\n"
     )
+
+    print('\nM = 1\n')
     
+
+    print(
+        f"Promedio de acierto en datos de entrenamiento con m = 1: {acierto_promedio_m1_train * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de entrenamiento con m = 1: {acierto_desviacion_m1_train * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de entrenamiento con m = 1: {precision_promedio_m1_train * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de entrenamiento con m = 1: {precision_desviacion_m1_train * 100:.2f}%"
-    )
+    
     print(f"Promedio de recall en datos de entrenamiento con m = 1: {recall_promedio_m1_train * 100:.2f}%")
+
+
+    print(
+        f"\nPromedio de acierto en datos de prueba con m = 1: {acierto_promedio_m1_test * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de prueba con m = 1: {acierto_desviacion_m1_test * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de prueba con m = 1: {precision_promedio_m1_test * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de prueba con m = 1: {precision_desviacion_m1_test * 100:.2f}%"
-    )
     print(f"Promedio de recall en datos de prueba con m = 1: {recall_promedio_m1_test * 100:.2f}%")
 
+    print('\nM = 10\n')
 
+    print(
+        f"Promedio de acierto en datos de entrenamiento con m = 10: {acierto_promedio_m10_train * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de entrenamiento con m = 10: {acierto_desviacion_m10_train * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de entrenamiento con m = 10: {precision_promedio_m10_train * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de entrenamiento con m = 10: {precision_desviacion_m10_train * 100:.2f}%"
-    )
+    
     print(f"Promedio de recall en datos de entrenamiento con m = 10: {recall_promedio_m10_train * 100:.2f}%")
+
+
+    print(
+        f"\nPromedio de acierto en datos de prueba con m = 10: {acierto_promedio_m10_test * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de prueba con m = 10: {acierto_desviacion_m10_test * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de prueba con m = 10: {precision_promedio_m10_test * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de prueba con m = 10: {precision_desviacion_m10_test * 100:.2f}%"
-    )    
+        
     print(f"Promedio de recall en datos de prueba con m = 10: {recall_promedio_m10_test * 100:.2f}%")
 
+    print('\nM = 100\n')
 
+    print(
+        f"Promedio de acierto en datos de entrenamiento con m = 100: {acierto_promedio_m100_train * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de entrenamiento con m = 100: {acierto_desviacion_m100_train * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de entrenamiento con m = 100: {precision_promedio_m100_train * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de entrenamiento con m = 100: {precision_desviacion_m100_train * 100:.2f}%"
-    )
+    
     print(f"Promedio de recall en datos de entrenamiento con m = 100: {recall_promedio_m100_train * 100:.2f}%")
+    
+    print(
+        f"\nPromedio de acierto en datos de prueba con m = 100: {acierto_promedio_m100_test * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de prueba con m = 100: {acierto_desviacion_m100_test * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de prueba con m = 100: {precision_promedio_m100_test * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de prueba con m = 100: {precision_desviacion_m100_test * 100:.2f}%"
-    )
+    
     print(f"Promedio de recall en datos de prueba con m = 100: {recall_promedio_m100_test * 100:.2f}%")
 
+    print('\nM = 1000\n')
 
+    print(
+        f"Promedio de acierto en datos de entrenamiento con m = 1000: {acierto_promedio_m1000_train * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de entrenamiento con m = 1000: {acierto_desviacion_m1000_train * 100:.2f}%"
+    )
     print(
         f"Promedio de precisión en datos de entrenamiento con m = 1000: {precision_promedio_m1000_train * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de entrenamiento con m = 1000: {precision_desviacion_m1000_train * 100:.2f}%"
-    )
+    
     print(f"Promedio de recall en datos de entrenamiento con m = 1000: {recall_promedio_m1000_train * 100:.2f}%")
+    
+    print(
+        f"\nPromedio de acierto en datos de prueba con m = 1000: {acierto_promedio_m1000_test * 100:.2f}%"
+    )
+    print(
+        f"Desviación estándar de acierto en datos de prueba con m = 1000: {acierto_desviacion_m1000_test * 100:.2f}%"
+    ) 
     print(
         f"Promedio de precisión en datos de prueba con m = 1000: {precision_promedio_m1000_test * 100:.2f}%"
     )
-    print(
-        f"Desviación estándar de precisión en datos de prueba con m = 1000: {precision_desviacion_m1000_test * 100:.2f}%"
-    )    
+       
     print(f"Promedio de recall en datos de prueba con m = 1000: {recall_promedio_m1000_test * 100:.2f}%")
 
 
