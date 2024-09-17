@@ -141,7 +141,7 @@ if __name__ == "__main__":
     dataset_discretizado_df = pd.DataFrame(dataset_discretizado, columns=column_names_discretizado)
 
     #Eliminar columnas tras prueba chi-cuadrado
-    dataset_discretizado_df = dataset_discretizado_df.drop(columns=['wtkg','hemo','homo', 'karnof', 'oprior', 'zprior', 'preanti', 'gender','cd40','cd820'])
+    dataset_discretizado_df = dataset_discretizado_df.drop(columns=['age','wtkg','hemo','homo', 'karnof', 'oprior', 'zprior', 'gender', 'cd820'])
 
     # Extraer los atributos y la etiqueta
     atributos = dataset_discretizado_df.iloc[:, 1:].values  # Todas las columnas menos la primera (la etiqueta)
@@ -655,7 +655,7 @@ if __name__ == "__main__":
 
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title('Curva Precision-Recall con m = 1. AUC = ' + str(auc_m1))
+    plt.title('Curva Precision-Recall con m = 1. AUC = ' + str(auc_m1.round(3)))
     plt.legend()
     plt.show()
 
@@ -663,7 +663,7 @@ if __name__ == "__main__":
 
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title('Curva Precision-Recall con m = 10. AUC = ' + str(auc_m10))
+    plt.title('Curva Precision-Recall con m = 10. AUC = ' + str(auc_m10.round(3)))
     plt.legend()
     plt.show()
 
@@ -671,7 +671,7 @@ if __name__ == "__main__":
 
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title('Curva Precision-Recall con m = 100. AUC = ' + str(auc_m100))
+    plt.title('Curva Precision-Recall con m = 100. AUC = ' + str(auc_m100.round(3)))
     plt.legend()
     plt.show()
 
@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title('Curva Precision-Recall con m = 1000. AUC = ' + str(auc_m1000))
+    plt.title('Curva Precision-Recall con m = 1000. AUC = ' + str(auc_m1000.round(3)))
     plt.legend()
     plt.show()
 
