@@ -119,12 +119,12 @@ if __name__ == "__main__":
     atributos = dataset.iloc[:, 1:].values  # Todas las columnas menos la primera (la etiqueta)
     etiqueta = dataset.iloc[:, 0].values    # Primera columna como etiqueta
 
-    # Crear un KBinsDiscretizer para discretizar los valores continuos
-    discretizer = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='uniform')
-
     # Aplicar la discretización solo a las columnas continuas
     for col in range(atributos.shape[1]):
         if col not in columnas_categoricas:
+            # Crear un KBinsDiscretizer para discretizar los valores continuos de esta columna en específico
+            discretizer = KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='quantile')
+            
             # Discretizar la columna continua
             atributos[:, col:col+1] = discretizer.fit_transform(atributos[:, col:col+1])
 
