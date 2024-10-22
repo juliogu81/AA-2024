@@ -12,14 +12,16 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(43)
 
-# Definir el modelo con una neurona, activación sigmoide y una salida
-class SimpleSigmoidNN(nn.Module):
+class SigmoidNNWithHiddenLayer(nn.Module):
     def __init__(self, features):
-        super(SimpleSigmoidNN, self).__init__()
-        self.linear = nn.Linear(features, 1)  # Una neurona, una salida
+        super(SigmoidNNWithHiddenLayer, self).__init__()
+        self.hidden = nn.Linear(features, 16)   # Capa oculta con 16 unidades
+        self.output = nn.Linear(16, 2)          # Capa de salida con 2 neuronas (para las dos clases)
     
     def forward(self, x):
-        return torch.sigmoid(self.linear(x))  # Activación sigmoide
+        x = torch.sigmoid(self.hidden(x))
+        x = torch.softmax(self.output(x), dim=1) # Softmax para obtener probabilidades
+        return x
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
@@ -30,7 +32,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
 
     for batch, (X, y) in enumerate(dataloader):
         # Forward pass
-        pred = model(X).squeeze()  # Aplanar la salida para que sea un vector
+        pred = model(X)  # La salida ya tiene forma (batch_size, 2)
         loss = loss_fn(pred, y)
 
         # Backward pass y optimización
@@ -41,14 +43,15 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         # Calcular métricas
         train_loss += loss.item()
 
-        # Si pred contiene probabilidades, usamos 0.5 como umbral para clase binaria
-        pred_class = (pred > 0.5).type(torch.float)  # Clase 1 si probabilidad > 0.5
+        # Obtener la clase predicha (índice de la mayor probabilidad)
+        pred_class = pred.argmax(dim=1)  # Clase con la mayor probabilidad
         correct += (pred_class == y).type(torch.float).sum().item()
 
     # Promedio de pérdida y precisión
     train_loss /= len(dataloader)
     correct /= size
     return train_loss, correct
+
 
 
 def test_loop(dataloader, model, loss_fn):
@@ -60,17 +63,18 @@ def test_loop(dataloader, model, loss_fn):
 
     with torch.no_grad():
         for X, y in dataloader:
-            pred = model(X).squeeze()  # Aplanar la salida para que sea un vector
+            pred = model(X)  # La salida ya tiene forma (batch_size, 2)
             test_loss += loss_fn(pred, y).item()
 
-            # Umbral de 0.5 para clasificación binaria
-            pred_class = (pred > 0.5).type(torch.float)
+            # Obtener la clase predicha (índice de la mayor probabilidad)
+            pred_class = pred.argmax(dim=1)  # Clase con la mayor probabilidad
             correct += (pred_class == y).type(torch.float).sum().item()
 
     # Promedio de pérdida y precisión
     test_loss /= num_batches
     correct /= size
     return test_loss, correct
+
 
 
 
@@ -96,9 +100,9 @@ if __name__ == "__main__":
 
     # Convertir a tensores de PyTorch
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
     X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
-    y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val.values, dtype=torch.long)
     
 
     dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
@@ -109,11 +113,11 @@ if __name__ == "__main__":
     dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
 
     # Crear la red neuronal
-    model = SimpleSigmoidNN(X_train_tensor.shape[1])
+    model = SigmoidNNWithHiddenLayer(X_train_tensor.shape[1])
 
     # Definir la función de pérdida (entropía cruzada binaria) y el optimizador (SGD)
-    criterion = nn.BCELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.05)
 
     # Entrenamiento
     num_epochs = 100

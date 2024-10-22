@@ -12,14 +12,23 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(43)
 
-# Definir el modelo con una neurona, activación sigmoide y una salida
-class SimpleSigmoidNN(nn.Module):
+        
+class NeuronalNetworkV1(nn.Module):
     def __init__(self, features):
-        super(SimpleSigmoidNN, self).__init__()
-        self.linear = nn.Linear(features, 1)  # Una neurona, una salida
+        super(NeuronalNetworkV1, self).__init__()
+        self.input_layer = nn.Linear(features, 32)  # Capa de entrada a capa oculta
+        self.hidden_layer = nn.ReLU()  # Activación ReLU para la capa oculta
+        self.dropout = nn.Dropout(0.5)  # Capa de Dropout
+        self.output_layer = nn.Linear(32, 1)  # Capa oculta a capa de salida
+        self.sigmoid = nn.Sigmoid()  # Activación sigmoide para la salida
     
     def forward(self, x):
-        return torch.sigmoid(self.linear(x))  # Activación sigmoide
+        x = self.input_layer(x)
+        x = self.hidden_layer(x)
+        x = self.dropout(x)
+        x = self.output_layer(x)
+        x = self.sigmoid(x)
+        return x
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
@@ -51,6 +60,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     return train_loss, correct
 
 
+
 def test_loop(dataloader, model, loss_fn):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
@@ -71,6 +81,7 @@ def test_loop(dataloader, model, loss_fn):
     test_loss /= num_batches
     correct /= size
     return test_loss, correct
+
 
 
 
@@ -109,11 +120,11 @@ if __name__ == "__main__":
     dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
 
     # Crear la red neuronal
-    model = SimpleSigmoidNN(X_train_tensor.shape[1])
+    model = NeuronalNetworkV1(X_train_tensor.shape[1])
 
     # Definir la función de pérdida (entropía cruzada binaria) y el optimizador (SGD)
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001)
+    optimizer = optim.SGD(model.parameters(), lr=0.05)
 
     # Entrenamiento
     num_epochs = 100

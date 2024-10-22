@@ -10,7 +10,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
-
+torch.manual_seed(43)
 
 # Definir el modelo con una sola neurona lineal y dos salidas (para 2 clases)
 class SimpleNN(nn.Module):
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
     dataset_val = TensorDataset(X_val_tensor, y_val_tensor)
 
-    batch_size = 10
+    batch_size = 32
     dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
 
