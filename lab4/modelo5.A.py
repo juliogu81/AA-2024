@@ -16,19 +16,27 @@ torch.manual_seed(43)
 class NeuronalNetworkV1(nn.Module):
     def __init__(self, features):
         super(NeuronalNetworkV1, self).__init__()
-        self.input_layer = nn.Linear(features, 32)  # Capa de entrada a capa oculta
-        self.hidden_layer = nn.ReLU()  # Activación ReLU para la capa oculta
-        self.dropout = nn.Dropout(0.5)  # Capa de Dropout
-        self.output_layer = nn.Linear(32, 1)  # Capa oculta a capa de salida
-        self.sigmoid = nn.Sigmoid()  # Activación sigmoide para la salida
-    
+        self.input_layer = nn.Linear(features, 16)
+        self.hidden_activation = nn.LeakyReLU()
+        self.dropout = nn.Dropout(0.4)
+
+        # Añadir más capas ocultas
+        self.hidden_layer1 = nn.Linear(16, 8)
+        
+        self.output_layer = nn.Linear(8, 1)
+
     def forward(self, x):
         x = self.input_layer(x)
-        x = self.hidden_layer(x)
+        x = self.hidden_activation(x)
         x = self.dropout(x)
+
+        x = self.hidden_layer1(x)
+        x = self.hidden_activation(x)
+        x = self.dropout(x)
+
         x = self.output_layer(x)
-        x = self.sigmoid(x)
         return x
+
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
@@ -50,6 +58,8 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         # Calcular métricas
         train_loss += loss.item()
 
+        # Convertimos los logits en probabilidades aplicando Sigmoid para la evaluación
+        pred = torch.sigmoid(pred)  # Aplica sigmoid para obtener las probabilidades
         # Si pred contiene probabilidades, usamos 0.5 como umbral para clase binaria
         pred_class = (pred > 0.5).type(torch.float)  # Clase 1 si probabilidad > 0.5
         correct += (pred_class == y).type(torch.float).sum().item()
@@ -73,6 +83,8 @@ def test_loop(dataloader, model, loss_fn):
             pred = model(X).squeeze()  # Aplanar la salida para que sea un vector
             test_loss += loss_fn(pred, y).item()
 
+            # Convertimos los logits en probabilidades aplicando Sigmoid para la evaluación
+            pred = torch.sigmoid(pred)  # Aplica sigmoid para obtener las probabilidades
             # Umbral de 0.5 para clasificación binaria
             pred_class = (pred > 0.5).type(torch.float)
             correct += (pred_class == y).type(torch.float).sum().item()
@@ -123,7 +135,7 @@ if __name__ == "__main__":
     model = NeuronalNetworkV1(X_train_tensor.shape[1])
 
     # Definir la función de pérdida (entropía cruzada binaria) y el optimizador (SGD)
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.05)
 
     # Entrenamiento
