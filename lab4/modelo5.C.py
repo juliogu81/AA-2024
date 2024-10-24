@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
-torch.manual_seed(43)
+torch.manual_seed(34)
 
 # Definir el bloque residual
 class ResidualBlock(nn.Module):
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     # Definir la función de pérdida (entropía cruzada binaria) y el optimizador (SGD con L2 regularization)
     criterion = nn.BCEWithLogitsLoss()  # Para clasificación binaria
-    optimizer = optim.SGD(model.parameters(), lr=0.05, weight_decay=1e-8)  # Reducir la tasa de aprendizaje y añadir L2
+    optimizer = optim.SGD(model.parameters(), lr=0.05, weight_decay=1e-4)  # Reducir la tasa de aprendizaje y añadir L2
 
     # Entrenamiento
     num_epochs = 100

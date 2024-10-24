@@ -8,8 +8,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-torch.manual_seed(43)
+torch.manual_seed(23)
 
 class NeuronalNetworkV2(nn.Module):
     def __init__(self, features):
@@ -86,6 +87,32 @@ def test_loop(dataloader, model, loss_fn):
     correct /= size
     return test_loss, correct
 
+# Función de evaluación para obtener las métricas
+def eval_model(dataloader, model):
+    model.eval()
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for X_batch, y_batch in dataloader:
+            outputs = model(X_batch)
+            pred = torch.sigmoid(outputs)
+            predicted = (pred > 0.5).type(torch.float)
+            all_preds.extend(predicted.numpy())
+            all_labels.extend(y_batch.numpy())
+
+    # Convertir a arrays de NumPy para calcular las métricas
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
+    print(all_preds)
+    print(all_labels)
+    # Calcular las métricas
+    accuracy = accuracy_score(all_labels, all_preds)
+    precision = precision_score(all_labels, all_preds)
+    recall = recall_score(all_labels, all_preds)
+    f1 = f1_score(all_labels, all_preds)
+
+    return accuracy, precision, recall, f1
 
 if __name__ == "__main__":
     DATASET_FILE = 'lab4_dataset.csv'
@@ -112,7 +139,7 @@ if __name__ == "__main__":
     dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
     dataset_val = TensorDataset(X_val_tensor, y_val_tensor)
 
-    batch_size = 64
+    batch_size = 32
     dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
 
@@ -160,3 +187,48 @@ if __name__ == "__main__":
     plt.legend()
 
     plt.show()
+
+    y_train_full = train_full['cid']
+    x_train_full = train_full.drop(columns=['cid'])
+    x_test = test.drop(columns=['cid'])
+    y_test = test['cid']
+
+        # Escalar los datos
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(x_train_full)
+    X_val = scaler.transform(x_test)
+
+    # Convertir a tensores de PyTorch
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train_full.values, dtype=torch.float32)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_test.values, dtype=torch.float32)
+
+    dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
+    dataset_val = TensorDataset(X_val_tensor, y_val_tensor)
+
+    batch_size = 32
+    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
+    dataloader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
+    model = NeuronalNetworkV2(X_train_tensor.shape[1])
+
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Entrenamiento
+    num_epochs = 100
+    train_losses = []
+    val_losses = []
+    train_accuracies = []
+    val_accuracies = []
+    for epoch in range(num_epochs):
+        # Ejecutar el ciclo de entrenamiento
+        train_loss, train_acc = train_loop(dataloader_train, model, criterion, optimizer)
+
+    # Evaluación del modelo con los datos de validación
+    accuracy, precision, recall, f1 = eval_model(dataloader_val, model)
+
+    print(f'Accuracy del modelo (validación): {accuracy:.4f}')
+    print(f'Precision del modelo (validación): {precision:.4f}')
+    print(f'Recall del modelo (validación): {recall:.4f}')
+    print(f'F1 del modelo (validación): {f1:.4f}')

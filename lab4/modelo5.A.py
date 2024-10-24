@@ -10,9 +10,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
-torch.manual_seed(43)
+torch.manual_seed(34)
 
-        
+
 class NeuronalNetworkV1(nn.Module):
     def __init__(self, features):
         super(NeuronalNetworkV1, self).__init__()

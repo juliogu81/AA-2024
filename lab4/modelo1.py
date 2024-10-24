@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 if __name__ == "__main__":
@@ -44,3 +45,25 @@ if __name__ == "__main__":
     accuracy = accuracy_score(y_val, y_pred)
 
     print(f'Accuracy del modelo de regresión logística: {accuracy:.4f}')
+
+# Entrenamiento y predicción en el conjunto de prueba
+    model2 = LogisticRegression(max_iter=3000)
+    y_train_full = train_full['cid']
+    x_train_full = train_full.drop(columns=['cid'])
+    x_test = test.drop(columns=['cid'])
+    y_test = test['cid']
+    model2.fit(x_train_full, y_train_full)
+
+    # Predecir las etiquetas del conjunto de prueba
+    y_test_pred = model2.predict(x_test)
+
+    # Calcular métricas en el conjunto de prueba
+    accuracy_test = accuracy_score(y_test, y_test_pred)
+    precision_test = precision_score(y_test, y_test_pred)
+    recall_test = recall_score(y_test, y_test_pred)
+    f1_test = f1_score(y_test, y_test_pred)
+
+    print(f'Accuracy del modelo de regresión logística (prueba): {accuracy_test:.4f}')
+    print(f'Precision del modelo de regresión logística (prueba): {precision_test:.4f}')
+    print(f'Recall del modelo de regresión logística (prueba): {recall_test:.4f}')
+    print(f'F1 del modelo de regresión logística (prueba): {f1_test:.4f}')
