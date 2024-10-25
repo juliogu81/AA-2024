@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 
 torch.manual_seed(23)
 
@@ -104,13 +104,16 @@ def eval_model(dataloader, model):
     # Convertir a arrays de NumPy para calcular las métricas
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
-    print(all_preds)
-    print(all_labels)
     # Calcular las métricas
     accuracy = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds)
     recall = recall_score(all_labels, all_preds)
     f1 = f1_score(all_labels, all_preds)
+
+    cm = confusion_matrix (all_labels, all_preds)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[0,1])
+    disp.plot()
+    plt.show()
 
     return accuracy, precision, recall, f1
 

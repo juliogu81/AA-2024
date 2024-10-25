@@ -2,12 +2,11 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 
 
 if __name__ == "__main__":
@@ -62,6 +61,11 @@ if __name__ == "__main__":
     precision_test = precision_score(y_test, y_test_pred)
     recall_test = recall_score(y_test, y_test_pred)
     f1_test = f1_score(y_test, y_test_pred)
+
+    cm = confusion_matrix (y_test, y_test_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[0,1])
+    disp.plot()
+    plt.show()
 
     print(f'Accuracy del modelo de regresión logística (prueba): {accuracy_test:.4f}')
     print(f'Precision del modelo de regresión logística (prueba): {precision_test:.4f}')
