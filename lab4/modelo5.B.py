@@ -113,7 +113,7 @@ def eval_model(dataloader, model):
     cm = confusion_matrix (all_labels, all_preds)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[0,1])
     disp.plot()
-    plt.title("Matriz de confusión Modelo 5.C")
+    plt.title("Matriz de confusión Modelo 5.B")
     plt.show()
 
     return accuracy, precision, recall, f1
